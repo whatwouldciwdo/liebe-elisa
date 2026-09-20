@@ -53,6 +53,74 @@ body {
   font-family: 'Merchant Copy', 'Courier New', monospace;
 }
 
+/* Unlock document scrolling only for the dashboard, not the full-screen player. */
+html:has(.dashboard),
+body:has(.dashboard) {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.dashboard {
+  overflow-wrap: anywhere;
+  user-select: text;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.dashboard :where(div, input, select, textarea, audio) {
+  min-width: 0;
+}
+
+.dashboard :where(input, select, textarea, audio, pre) {
+  max-width: 100%;
+}
+
+.dashboard svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .dashboard > .max-w-6xl {
+    padding: 1rem 0.75rem;
+  }
+
+  .dashboard .p-5 {
+    padding: 1rem;
+  }
+
+  .dashboard-tabs {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .dashboard-tabs button {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .dashboard :where(button, a, select, input:not([type='file'])) {
+    min-height: 44px;
+  }
+
+  /* Prevent focus zoom on iOS and keep native controls inside the form. */
+  .dashboard :where(input:not([type='file']), select, textarea) {
+    font-size: 16px;
+  }
+
+  .dashboard input[type='file']::file-selector-button {
+    min-height: 44px;
+  }
+
+  .dashboard input.w-44 {
+    width: 100%;
+  }
+
+  .dashboard button[type='submit'] {
+    padding-inline: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+}
+
 /* CRT CRT scanlines simulation */
 .crt-lines {
   background: linear-gradient(

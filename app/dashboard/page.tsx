@@ -318,7 +318,7 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-[#FF7FEC] font-mono selection:bg-[#FF7FEC] selection:text-black relative">
+    <div className="dashboard min-h-dvh bg-black text-[#FF7FEC] font-mono selection:bg-[#FF7FEC] selection:text-black relative">
       {/* CRT Scanline Overlay */}
       <div className="fixed inset-0 pointer-events-none crt-lines opacity-25 z-50" />
 
@@ -377,7 +377,7 @@ export default function DashboardPage() {
         {/* ========================================================== */}
         {/* NAVIGATION TABS */}
         {/* ========================================================== */}
-        <div className="flex border-b border-[#FF7FEC] mb-6 overflow-x-auto">
+        <div className="dashboard-tabs flex border-b border-[#FF7FEC] mb-6 overflow-x-auto">
           <button
             onClick={() => {
               sound.playClick();
@@ -574,7 +574,7 @@ export default function DashboardPage() {
                 <div className="space-y-6">
                   {/* 1. Audio Upload Box */}
                   <div className="border border-dashed border-[#FF7FEC] p-4 bg-black">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                       <label className="text-xs uppercase tracking-wider font-bold text-[#FF7FEC] flex items-center gap-2">
                         <Music className="w-4 h-4 text-[#00f5d4]" />
                         Audio File (.mp3, .wav, .m4a, .mp4a) <span className="text-red-400">*</span>
@@ -602,7 +602,7 @@ export default function DashboardPage() {
 
                     {audioPreviewUrl && (
                       <div className="mt-3 pt-3 border-t border-[#FF7FEC]/20">
-                        <div className="text-xs text-[#00f5d4] mb-1 flex items-center justify-between">
+                        <div className="text-xs text-[#00f5d4] mb-1 flex flex-wrap gap-2 items-center justify-between">
                           <span className="flex items-center gap-1">
                             <Volume2 className="w-3 h-3" /> Audio Preview:
                           </span>
@@ -630,7 +630,7 @@ export default function DashboardPage() {
                     />
 
                     {coverPreviewUrl && (
-                      <div className="mt-4 flex items-center gap-4">
+                      <div className="mt-4 flex flex-wrap items-center gap-4">
                         <div className="w-24 h-24 border border-[#FF7FEC] relative overflow-hidden bg-black shrink-0">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
@@ -653,7 +653,7 @@ export default function DashboardPage() {
               {/* --- Full-Width Lyrics Editor & LRC Controls --- */}
               <div className="border-t border-[#FF7FEC]/30 pt-4 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <label className="text-xs uppercase tracking-wider font-bold text-[#FF7FEC] flex items-center gap-2">
                       <FileText className="w-4 h-4 text-[#00f5d4]" />
                       Lyrics (Plain Text or LRC Timestamps)
@@ -666,7 +666,7 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Hidden LRC file input */}
                     <input
                       type="file"
@@ -840,7 +840,7 @@ export default function DashboardPage() {
                       className="border border-[#FF7FEC] p-3 md:p-4 bg-black flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#00f5d4] transition-colors"
                     >
                       {/* Song Info & Cover */}
-                      <div className="flex items-center gap-4">
+                      <div className="min-w-0 flex items-center gap-4">
                         {/* Cover Image */}
                         <div className="w-14 h-14 border border-[#FF7FEC] bg-neutral-900 shrink-0 relative overflow-hidden">
                           {song.artwork_url ? (
@@ -859,7 +859,7 @@ export default function DashboardPage() {
 
                         {/* Title & Artist */}
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-bold text-sm text-[#FF7FEC]">{song.title}</span>
                             <span className="text-[10px] px-1.5 py-0.5 border border-[#00f5d4] text-[#00f5d4]">
                               {song.playlist_key}
@@ -868,7 +868,7 @@ export default function DashboardPage() {
                           <div className="text-xs text-gray-300 mt-0.5">
                             {song.artist} {song.album && `• ${song.album}`} {song.year && `(${song.year})`}
                           </div>
-                          <div className="text-[10px] text-gray-500 mt-1 flex items-center gap-3">
+                          <div className="text-[10px] text-gray-500 mt-1 flex flex-wrap items-center gap-3">
                             <span>Duration: {formatDuration(song.duration)}</span>
                             {song.lyrics && (
                               <span className="text-[#00f5d4] flex items-center gap-0.5">
@@ -880,7 +880,7 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Controls & Actions */}
-                      <div className="flex items-center gap-2 self-end md:self-center">
+                      <div className="flex flex-wrap items-center gap-2 self-end md:self-center md:shrink-0">
                         {/* Audio Play/Pause Button */}
                         <button
                           onClick={() => handleTogglePlay(song)}
@@ -955,7 +955,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`}
 
             {/* Step 2: SQL Script */}
             <div className="border border-[#FF7FEC]/50 p-4 bg-black">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap gap-2 items-center justify-between mb-2">
                 <div className="text-xs font-bold text-[#00f5d4] uppercase">
                   STEP 2: RUN SQL IN SUPABASE SQL EDITOR
                 </div>
@@ -997,8 +997,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`}
       {/* ========================================================== */}
       {selectedLyricsSong && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="border-2 border-[#FF7FEC] bg-black max-w-lg w-full p-4 md:p-6 relative max-h-[85vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#FF7FEC] pb-3 mb-4">
+          <div className="border-2 border-[#FF7FEC] bg-black max-w-lg w-full p-4 md:p-6 relative max-h-[85dvh] flex flex-col overflow-hidden">
+            <div className="flex flex-wrap gap-3 shrink-0 items-center justify-between border-b border-[#FF7FEC] pb-3 mb-4">
               <div>
                 <h3 className="font-bold text-sm text-[#FF7FEC]">{selectedLyricsSong.title}</h3>
                 <div className="text-xs text-[#00f5d4]">{selectedLyricsSong.artist}</div>
