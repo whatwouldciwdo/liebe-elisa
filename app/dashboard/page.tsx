@@ -182,7 +182,7 @@ export default function DashboardPage() {
     }
 
     if (!audioFile) {
-      setStatusMessage({ text: 'Please select an Audio file (.mp3, .wav, etc.).', type: 'error' });
+      setStatusMessage({ text: 'Please select an Audio file (.mp3, .wav, .m4a, .mp4a, etc.).', type: 'error' });
       return;
     }
 
@@ -435,7 +435,7 @@ export default function DashboardPage() {
                   UPLOAD NEW TRACK TO SUPABASE
                 </h2>
                 <p className="text-xs text-[#00f5d4] mt-1">
-                  Upload audio (.mp3/.wav), cover art, lyrics, and metadata. Existing static playlists will NOT be modified.
+                  Upload audio (.mp3/.wav/.m4a/.mp4a), cover art, lyrics, and metadata. Existing static playlists will NOT be modified.
                 </p>
               </div>
             </div>
@@ -577,7 +577,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-xs uppercase tracking-wider font-bold text-[#FF7FEC] flex items-center gap-2">
                         <Music className="w-4 h-4 text-[#00f5d4]" />
-                        Audio File (.mp3, .wav, .m4a) <span className="text-red-400">*</span>
+                        Audio File (.mp3, .wav, .m4a, .mp4a) <span className="text-red-400">*</span>
                       </label>
                       {audioDuration > 0 && (
                         <span className="text-xs bg-[#00f5d4]/20 text-[#00f5d4] px-2 py-0.5 border border-[#00f5d4]">
@@ -588,7 +588,7 @@ export default function DashboardPage() {
 
                     <input
                       type="file"
-                      accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac"
+                      accept="audio/*,.mp3,.wav,.ogg,.m4a,.mp4a,.flac"
                       onChange={handleAudioChange}
                       className="block w-full text-xs text-[#FF7FEC] file:mr-3 file:py-1.5 file:px-3 file:border file:border-[#FF7FEC] file:text-xs file:bg-black file:text-[#FF7FEC] hover:file:bg-[#FF7FEC] hover:file:text-black cursor-pointer"
                     />

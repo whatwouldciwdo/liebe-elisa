@@ -42,7 +42,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 }
 
 /**
- * Upload an audio file (.mp3, .wav, etc.) to the 'songs-audio' storage bucket
+ * Upload an audio file (.mp3, .wav, .m4a, .mp4a, etc.) to the 'songs-audio' storage bucket
  */
 export async function uploadAudioFile(file: File): Promise<{ url: string; path: string; error?: string }> {
   const supabase = getSupabaseClient();
@@ -53,9 +53,29 @@ export async function uploadAudioFile(file: File): Promise<{ url: string; path: 
   const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const filePath = `audio_${Date.now()}_${cleanName}`;
 
+  // Determine explicit Content-Type to guarantee proper audio streaming in HTML5 audio (especially on iOS Safari)
+  let contentType = file.type;
+  if (!contentType || contentType === 'application/octet-stream') {
+    const ext = cleanName.split('.').pop()?.toLowerCase();
+    if (ext === 'm4a' || ext === 'mp4a' || ext === 'mp4') {
+      contentType = 'audio/mp4';
+    } else if (ext === 'mp3') {
+      contentType = 'audio/mpeg';
+    } else if (ext === 'wav') {
+      contentType = 'audio/wav';
+    } else if (ext === 'ogg') {
+      contentType = 'audio/ogg';
+    } else if (ext === 'aac') {
+      contentType = 'audio/aac';
+    } else if (ext === 'flac') {
+      contentType = 'audio/flac';
+    }
+  }
+
   const { error: uploadError } = await supabase.storage
     .from('songs-audio')
     .upload(filePath, file, {
+      contentType: contentType || undefined,
       cacheControl: '3600',
       upsert: false,
     });
@@ -80,9 +100,19 @@ export async function uploadCoverFile(file: File): Promise<{ url: string; path: 
   const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const filePath = `cover_${Date.now()}_${cleanName}`;
 
+  let contentType = file.type;
+  if (!contentType || contentType === 'application/octet-stream') {
+    const ext = cleanName.split('.').pop()?.toLowerCase();
+    if (ext === 'png') contentType = 'image/png';
+    else if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
+    else if (ext === 'webp') contentType = 'image/webp';
+    else if (ext === 'gif') contentType = 'image/gif';
+  }
+
   const { error: uploadError } = await supabase.storage
     .from('songs-covers')
     .upload(filePath, file, {
+      contentType: contentType || undefined,
       cacheControl: '3600',
       upsert: false,
     });
