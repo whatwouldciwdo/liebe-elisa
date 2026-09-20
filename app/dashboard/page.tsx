@@ -238,11 +238,10 @@ export default function DashboardPage() {
       if (coverFile) {
         setStatusMessage({ text: '2/3 Uploading cover artwork to Supabase Storage...', type: 'info' });
         const coverRes = await uploadCoverFile(coverFile);
-        if (coverRes.error) {
-          console.warn('Cover upload warning:', coverRes.error);
-        } else {
-          finalCoverUrl = coverRes.url;
+        if (coverRes.error || !coverRes.url) {
+          throw new Error(`Cover upload failed: ${coverRes.error || 'No cover URL returned.'}`);
         }
+        finalCoverUrl = coverRes.url;
       }
 
       // 3. Save song record to database
