@@ -14,6 +14,7 @@ import {
 import { DAILY_LETTER_MAP } from '@/lib/playlistPlayerRenderer';
 import { sound } from '@/lib/audio';
 import { parseLRC } from '@/lib/lyrics';
+import { readAudioDuration } from '@/lib/audioMetadata';
 import {
   Music,
   Upload,
@@ -69,6 +70,8 @@ export default function DashboardPage() {
   // File uploads
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number>(0);
+  const durationRequestRef = useRef<Promise<number> | null>(null);
+  const selectedAudioRef = useRef<File | null>(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string>('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>('');
@@ -89,7 +92,12 @@ export default function DashboardPage() {
   // Handle .lrc file upload
   const handleLrcUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (!/\.(lrc|txt)$/i.test(file.name)) {
+      setStatusMessage({ text: 'Please select a .lrc or .txt lyrics file.', type: 'error' });
+      return;
+    }
     sound.playClick();
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -98,6 +106,9 @@ export default function DashboardPage() {
         setLyrics(text);
         sound.playChime([523.25, 659.25, 783.99]);
       }
+    };
+    reader.onerror = () => {
+      setStatusMessage({ text: 'Cannot read lyrics file. Download it to your device and try again.', type: 'error' });
     };
     reader.readAsText(file);
   };
@@ -140,18 +151,29 @@ export default function DashboardPage() {
 
     sound.playClick();
     setAudioFile(file);
+    selectedAudioRef.current = file;
+    setAudioDuration(0);
 
     // Create temporary local preview URL
     const url = URL.createObjectURL(file);
     setAudioPreviewUrl(url);
 
-    // Auto-detect audio duration using HTML5 Audio object
-    const tempAudio = new Audio(url);
-    tempAudio.addEventListener('loadedmetadata', () => {
-      const dur = Math.round(tempAudio.duration || 0);
-      setAudioDuration(dur);
+    const request = readAudioDuration(file);
+    durationRequestRef.current = request;
+    request.then((duration) => {
+      if (selectedAudioRef.current === file) setAudioDuration(duration);
+    }).catch((error: Error) => {
+      if (selectedAudioRef.current === file) {
+        setStatusMessage({ text: error.message, type: 'error' });
+      }
     });
   };
+
+  useEffect(() => {
+    return () => {
+      if (audioPreviewUrl) URL.revokeObjectURL(audioPreviewUrl);
+    };
+  }, [audioPreviewUrl]);
 
   // Cover image selection
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,9 +217,16 @@ export default function DashboardPage() {
     }
 
     setIsSubmitting(true);
-    setStatusMessage({ text: '1/3 Uploading audio file to Supabase Storage...', type: 'info' });
+    setStatusMessage({ text: 'Reading audio duration...', type: 'info' });
 
     try {
+      const duration = audioDuration > 0
+        ? audioDuration
+        : await (durationRequestRef.current ?? readAudioDuration(audioFile));
+      if (!Number.isFinite(duration) || duration <= 0) {
+        throw new Error('Enter a valid audio duration in seconds before uploading.');
+      }
+      setStatusMessage({ text: '1/3 Uploading audio file to Supabase Storage...', type: 'info' });
       // 1. Upload audio
       const audioRes = await uploadAudioFile(audioFile);
       if (audioRes.error || !audioRes.url) {
@@ -224,7 +253,7 @@ export default function DashboardPage() {
         artist: artist.trim(),
         album: album.trim(),
         year: year.trim(),
-        duration: audioDuration || 0,
+        duration: Math.max(1, Math.round(duration)),
         playlist_key: playlistKey,
         audio_url: audioRes.url,
         artwork_url: finalCoverUrl,
@@ -256,6 +285,8 @@ export default function DashboardPage() {
       setAppleMusicLink('');
       setYoutubeLink('');
       setAudioFile(null);
+      selectedAudioRef.current = null;
+      durationRequestRef.current = null;
       setAudioDuration(0);
       setAudioPreviewUrl('');
       setCoverFile(null);
@@ -589,9 +620,25 @@ export default function DashboardPage() {
                     <input
                       type="file"
                       accept="audio/*,.mp3,.wav,.ogg,.m4a,.mp4a,.flac"
+                      disabled={isSubmitting}
                       onChange={handleAudioChange}
                       className="block w-full text-xs text-[#FF7FEC] file:mr-3 file:py-1.5 file:px-3 file:border file:border-[#FF7FEC] file:text-xs file:bg-black file:text-[#FF7FEC] hover:file:bg-[#FF7FEC] hover:file:text-black cursor-pointer"
                     />
+
+                    {audioFile && (
+                      <label className="block mt-3 text-xs text-[#00f5d4]">
+                        Duration (seconds) — auto-detected, or enter manually
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={audioDuration || ''}
+                          disabled={isSubmitting}
+                          onChange={(e) => setAudioDuration(Number(e.target.value))}
+                          className="block w-full mt-1 bg-black border border-[#FF7FEC] px-3 py-2 text-[#FF7FEC]"
+                        />
+                      </label>
+                    )}
 
                     {audioFile && (
                       <div className="mt-3 text-xs text-gray-300">
@@ -671,7 +718,7 @@ export default function DashboardPage() {
                     <input
                       type="file"
                       ref={lrcFileInputRef}
-                      accept=".lrc,.txt"
+                      // No accept filter: mobile providers often label .lrc as an unknown MIME type.
                       onChange={handleLrcUpload}
                       className="hidden"
                     />
