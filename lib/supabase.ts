@@ -118,7 +118,10 @@ export async function uploadCoverFile(file: File): Promise<{ url: string; path: 
     });
 
   if (uploadError) {
-    return { url: '', path: '', error: uploadError.message };
+    const message = /failed to fetch|network|load failed/i.test(uploadError.message)
+      ? 'Cover upload could not reach Supabase Storage. Save the image locally on your device, select it again, and retry. Check your connection or try another network if this continues.'
+      : uploadError.message;
+    return { url: '', path: '', error: message };
   }
 
   const { data } = supabase.storage.from('songs-covers').getPublicUrl(filePath);
@@ -187,12 +190,13 @@ export async function fetchSongs(playlistKey?: string): Promise<{ data: DbSong[]
 }
 
 /**
- * Delete a song record and its uploaded files from storage
+ * Delete a song record. Keep storage assets because other playlists or static
+ * playlist data may still reference them; cleanup requires a separate audit.
  */
 export async function deleteSong(
   id: string,
-  audioUrl?: string,
-  artworkUrl?: string
+  _audioUrl?: string,
+  _artworkUrl?: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -203,24 +207,6 @@ export async function deleteSong(
   const { error: dbError } = await supabase.from('songs').delete().eq('id', id);
   if (dbError) {
     return { success: false, error: dbError.message };
-  }
-
-  // 2. Optionally delete from storage buckets
-  try {
-    if (audioUrl && audioUrl.includes('songs-audio/')) {
-      const parts = audioUrl.split('songs-audio/');
-      if (parts[1]) {
-        await supabase.storage.from('songs-audio').remove([decodeURIComponent(parts[1])]);
-      }
-    }
-    if (artworkUrl && artworkUrl.includes('songs-covers/')) {
-      const parts = artworkUrl.split('songs-covers/');
-      if (parts[1]) {
-        await supabase.storage.from('songs-covers').remove([decodeURIComponent(parts[1])]);
-      }
-    }
-  } catch (e) {
-    console.warn('File cleanup warning:', e);
   }
 
   return { success: true };
