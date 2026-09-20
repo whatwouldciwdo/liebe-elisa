@@ -469,10 +469,10 @@ export class HudRenderer {
     // 4. MAIN HEADLINE (Slender, Crisp, Elegant Instrument Serif)
     // ==========================================================
     const headlineY = isMobile
-      ? Math.max(90, height * 0.14)
+      ? Math.max(logoY + logoH + (height < 600 ? 15 : 22), Math.round(height * 0.13))
       : Math.max(110, height / 2 - 240);
 
-    const fontSize = isMobile ? Math.min(width * 0.065, 30) : 56;
+    const fontSize = isMobile ? (height < 600 ? 22 : Math.min(width * 0.065, 30)) : 56;
     const lineHeight = fontSize * 1.15;
 
     ctx.textAlign = 'center';
@@ -500,7 +500,7 @@ export class HudRenderer {
     // 5. "LISTEN NOW" (Centered between Headline and CDs)
     // ==========================================================
     const headlineLinesCount = (line1 ? 1 : 0) + (line2 ? 1 : 0);
-    const listenNowY = headlineY + lineHeight * Math.max(1, headlineLinesCount) + 14;
+    const listenNowY = headlineY + lineHeight * Math.max(1, headlineLinesCount) + (height < 600 ? 10 : 14);
     ctx.save();
     ctx.font = 'bold 13px "Merchant Copy", "Courier New", monospace';
     ctx.letterSpacing = '3px';
@@ -513,10 +513,17 @@ export class HudRenderer {
     // ==========================================================
     // 6. TWO OFFICIAL CD JEWEL CASES & LABELS
     // ==========================================================
-    const cdSize = isMobile ? Math.min(width * 0.42, 190) : Math.min(width * 0.22, 260);
+    const footerYEst = height - (isMobile ? 24 : 32);
+    const bottomBtnYEst = footerYEst - (isMobile ? 46 : 56);
+    const availCdH = bottomBtnYEst - (listenNowY + 16) - (isMobile ? 32 : 46);
+    const maxCdFromH = Math.max(isMobile ? 75 : 120, Math.floor(availCdH));
+
+    const cdSize = isMobile
+      ? Math.min(width * 0.40, 180, maxCdFromH)
+      : Math.min(width * 0.22, 260, maxCdFromH);
     const spacing = isMobile ? cdSize * 0.55 : Math.max(cdSize * 0.75, 175);
     const cdBaseY = isMobile
-      ? listenNowY + 30
+      ? Math.max(listenNowY + 20, Math.min(listenNowY + 30, (bottomBtnYEst - 24 + listenNowY) / 2 - cdSize / 2))
       : Math.max(listenNowY + 35, height / 2 - cdSize * 0.45);
 
     const floatSpeed = 0.9;
@@ -612,7 +619,8 @@ export class HudRenderer {
     // ==========================================================
     // 7. BOTTOM CONTROLS & FOOTER
     // ==========================================================
-    const bottomBtnY = height - (isMobile ? 80 : 92);
+    const footerY = height - (isMobile ? 24 : 32);
+    const bottomBtnY = footerY - (isMobile ? 46 : 56);
     const btnW = isMobile ? 220 : 260;
     const btnH = 34;
     const btnX = centerX - btnW / 2;
@@ -638,7 +646,6 @@ export class HudRenderer {
     ctx.restore();
 
     // Footer Links: WHO MADE THIS?  ●  PRIVACY  ●  STATUS
-    const footerY = height - (isMobile ? 30 : 34);
     ctx.font = '11px "Merchant Copy", "Courier New", monospace';
     ctx.fillStyle = '#888888';
 

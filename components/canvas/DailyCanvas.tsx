@@ -23,8 +23,24 @@ export default function DailyCanvas({ onSelectPlaylist }: DailyCanvasProps) {
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    let width = container.clientWidth || window.innerWidth;
-    let height = container.clientHeight || window.innerHeight;
+    const getViewportSize = () => {
+      const winW = typeof window !== 'undefined'
+        ? (window.visualViewport ? Math.round(window.visualViewport.width) : window.innerWidth)
+        : 390;
+      const winH = typeof window !== 'undefined'
+        ? (window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight)
+        : 844;
+      const cW = container.clientWidth || winW;
+      const cH = container.clientHeight || winH;
+      return {
+        width: Math.min(cW, winW),
+        height: Math.min(cH, winH),
+      };
+    };
+
+    const initialSize = getViewportSize();
+    let width = initialSize.width;
+    let height = initialSize.height;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     // 1. WebGL Renderer using canvas element
@@ -183,11 +199,10 @@ export default function DailyCanvas({ onSelectPlaylist }: DailyCanvasProps) {
 
     // 5. Resize Handler
     const onResize = () => {
-      const newWidth = container.clientWidth || window.innerWidth;
-      const newHeight = container.clientHeight || window.innerHeight;
-      if (newWidth <= 0 || newHeight <= 0) return;
-      width = newWidth;
-      height = newHeight;
+      const size = getViewportSize();
+      if (!size.width || !size.height) return;
+      width = size.width;
+      height = size.height;
 
       mainCamera.left = -width / 2;
       mainCamera.right = width / 2;
@@ -211,6 +226,8 @@ export default function DailyCanvas({ onSelectPlaylist }: DailyCanvasProps) {
     };
 
     window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
     const resizeObserver = new ResizeObserver(() => {
       onResize();
     });
@@ -252,6 +269,8 @@ export default function DailyCanvas({ onSelectPlaylist }: DailyCanvasProps) {
       canvas.removeEventListener('click', onClick);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
 
       renderer.dispose();
       renderTarget.dispose();
@@ -261,7 +280,7 @@ export default function DailyCanvas({ onSelectPlaylist }: DailyCanvasProps) {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 w-full h-full overflow-hidden select-none bg-black cursor-default"
+      className="fixed inset-0 w-full h-full overflow-hidden select-none bg-black cursor-default"
     >
       <canvas
         ref={canvasRef}

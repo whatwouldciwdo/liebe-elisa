@@ -384,7 +384,8 @@ export class DailyRenderer {
     const btnW = btnTextW + btnPadX * 2;
     const btnH = isMobile ? 48 : 56;
     const btnX = centerX - btnW / 2;
-    const btnY = apexY + lineGap + lineLen + (isMobile ? 32 : 48);
+    const maxBtnY = height - btnH - (isMobile ? 18 : 24);
+    const btnY = Math.min(apexY + lineGap + lineLen + (isMobile ? 24 : 48), maxBtnY);
 
     this.hitAreas.button = {
       x: btnX,

@@ -191,7 +191,7 @@ export default function DailyPlaylistPage({ params }: DailyPlaylistPageProps) {
   const likedTracksSet = useMemo(() => new Set(likedTrackIds), [likedTrackIds]);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black">
+    <main className="fixed inset-0 w-full h-full h-[100dvh] overflow-hidden bg-black">
       {/* 
         3D CD DISC PLAYER & CRT SHADER CANVAS
         Features:

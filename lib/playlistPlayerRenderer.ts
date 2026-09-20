@@ -477,7 +477,7 @@ export class PlaylistPlayerRenderer {
       // Shrink radius if vertical space is insufficient (landscape / short phone)
       const infoEndY = streamY + (isMobile ? (isVeryShort ? 8 : 14) : 18);
       const availV = height - infoEndY - _bottomH - _safeBot - _boxH - _boxGap;
-      const maxRadiusH = Math.floor(availV / 2);
+      const maxRadiusH = Math.floor((availV - 8) / 2);
       if (maxRadiusH > 0 && maxRadiusH < cdRadius) {
         cdRadius = Math.max(isMobile ? (isVeryShort ? 40 : 52) : 68, maxRadiusH);
       }

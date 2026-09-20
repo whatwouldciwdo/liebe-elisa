@@ -143,8 +143,24 @@ export default function PlaylistPlayerCanvas({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    let width = container.clientWidth || window.innerWidth;
-    let height = container.clientHeight || window.innerHeight;
+    const getViewportSize = () => {
+      const winW = typeof window !== 'undefined'
+        ? (window.visualViewport ? Math.round(window.visualViewport.width) : window.innerWidth)
+        : 390;
+      const winH = typeof window !== 'undefined'
+        ? (window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight)
+        : 844;
+      const cW = container.clientWidth || winW;
+      const cH = container.clientHeight || winH;
+      return {
+        width: Math.min(cW, winW),
+        height: Math.min(cH, winH),
+      };
+    };
+
+    const initialSize = getViewportSize();
+    let width = initialSize.width;
+    let height = initialSize.height;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     // 1. WebGL Renderer
@@ -352,8 +368,10 @@ export default function PlaylistPlayerCanvas({
     // 5. Resize Handler
     const handleResize = () => {
       if (!container || !canvas) return;
-      width = container.clientWidth || window.innerWidth;
-      height = container.clientHeight || window.innerHeight;
+      const size = getViewportSize();
+      if (!size.width || !size.height) return;
+      width = size.width;
+      height = size.height;
 
       renderer.setSize(width, height);
       renderer.setPixelRatio(dpr);
@@ -383,6 +401,8 @@ export default function PlaylistPlayerCanvas({
     };
 
     window.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
 
     // 6. Animation Loop
     let animationFrameId: number;
@@ -431,6 +451,8 @@ export default function PlaylistPlayerCanvas({
       canvas.removeEventListener('click', onClick);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
 
       renderTarget.dispose();
       crtMaterial.dispose();
@@ -446,7 +468,7 @@ export default function PlaylistPlayerCanvas({
   }, [playlist, initialTrackIndex, likedTracks]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden bg-black">
+    <div ref={containerRef} className="fixed inset-0 w-full h-full select-none overflow-hidden bg-black">
       {/* HTML5 Audio element */}
       <audio
         ref={audioRef}

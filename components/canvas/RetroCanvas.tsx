@@ -35,8 +35,24 @@ export default function RetroCanvas({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    let width = container.clientWidth || window.innerWidth;
-    let height = container.clientHeight || window.innerHeight;
+    const getViewportSize = () => {
+      const winW = typeof window !== 'undefined'
+        ? (window.visualViewport ? Math.round(window.visualViewport.width) : window.innerWidth)
+        : 390;
+      const winH = typeof window !== 'undefined'
+        ? (window.visualViewport ? Math.round(window.visualViewport.height) : window.innerHeight)
+        : 844;
+      const cW = container.clientWidth || winW;
+      const cH = container.clientHeight || winH;
+      return {
+        width: Math.min(cW, winW),
+        height: Math.min(cH, winH),
+      };
+    };
+
+    const initialSize = getViewportSize();
+    let width = initialSize.width;
+    let height = initialSize.height;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     // 1. WebGL Renderer with preserveDrawingBuffer enabled (for native "Save image as...")
@@ -219,8 +235,10 @@ export default function RetroCanvas({
 
     // 5. Resize handler
     const onResize = () => {
-      width = container.clientWidth || window.innerWidth;
-      height = container.clientHeight || window.innerHeight;
+      const size = getViewportSize();
+      if (!size.width || !size.height) return;
+      width = size.width;
+      height = size.height;
 
       mainCamera.left = -width / 2;
       mainCamera.right = width / 2;
@@ -242,7 +260,10 @@ export default function RetroCanvas({
       crtMaterial.uniforms.tDiffuse.value = renderTarget.texture;
       crtMaterial.uniforms.uResolution.value.set(width * dpr, height * dpr);
     };
+
     window.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
 
     // 6. Render Loop
     let animationId: number;
@@ -277,6 +298,8 @@ export default function RetroCanvas({
       window.removeEventListener('mousemove', onPointerMove);
       window.removeEventListener('click', onClick);
       window.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
       renderer.dispose();
       renderTarget.dispose();
     };
@@ -291,7 +314,7 @@ export default function RetroCanvas({
   ]);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 w-full h-full overflow-hidden select-none bg-black">
+    <div ref={containerRef} className="fixed inset-0 w-full h-full overflow-hidden select-none bg-black">
       <canvas
         ref={canvasRef}
         className="w-full h-full block touch-none"

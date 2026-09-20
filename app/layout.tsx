@@ -17,6 +17,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
   themeColor: '#000000',
 };
 
@@ -57,7 +62,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="min-h-screen w-screen overflow-hidden bg-black text-white">
+      <body className="w-full h-full h-[100dvh] overflow-hidden bg-black text-white">
         {children}
       </body>
     </html>

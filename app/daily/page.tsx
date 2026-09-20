@@ -23,7 +23,7 @@ export default function DailyPage() {
   const router = useRouter();
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black">
+    <main className="fixed inset-0 w-full h-full h-[100dvh] overflow-hidden bg-black">
       <DailyCanvas onSelectPlaylist={(letter) => router.push(`/daily/${letter.toLowerCase()}`)} />
     </main>
   );

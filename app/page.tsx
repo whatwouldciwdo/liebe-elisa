@@ -29,7 +29,7 @@ export default function HomePage() {
   const [infoType, setInfoType] = useState<'about' | 'who' | 'privacy' | 'status' | null>(null);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black">
+    <main className="fixed inset-0 w-full h-full h-[100dvh] overflow-hidden bg-black">
       {/* 
         MAIN WEBGL CANVAS LAYER
         Includes:
