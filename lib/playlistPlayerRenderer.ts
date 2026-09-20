@@ -373,17 +373,19 @@ export class PlaylistPlayerRenderer {
     // 3. TRACK TITLE, ARTIST NAME, CD DISCS & CONTROLS
     // ==========================================================
     if (currentTrack && tracks.length > 0) {
+      // Adaptive info start: scale with height, minimum clears the top bar
+      const topBarBottom = logoY + logoH + 8; // bottom of logo + small gap
       const infoStartY = isMobile
-        ? Math.max(120, Math.round(height * 0.25))
+        ? Math.max(topBarBottom, Math.round(height * 0.22))
         : Math.max(margin + barHeight + 45, height * 0.14);
 
       // Track Title (e.g. "That's When I Think Of You" / "Adore Me")
       hudCtx.save();
-      let titleFontSize = isMobile ? 26 : 30;
+      let titleFontSize = isMobile ? (height < 500 ? 20 : 26) : 30;
       hudCtx.font = `${titleFontSize}px "Merchant Copy Doublesize", monospace`;
       const titleW = hudCtx.measureText(currentTrack.name).width;
       if (titleW > width - 36) {
-        titleFontSize = Math.max(isMobile ? 18 : 22, Math.floor(titleFontSize * ((width - 36) / titleW)));
+        titleFontSize = Math.max(isMobile ? 16 : 22, Math.floor(titleFontSize * ((width - 36) / titleW)));
         hudCtx.font = `${titleFontSize}px "Merchant Copy Doublesize", monospace`;
       }
       hudCtx.letterSpacing = '0.5px';
@@ -395,12 +397,13 @@ export class PlaylistPlayerRenderer {
       hudCtx.fillText(currentTrack.name, centerX, infoStartY);
 
       // Artist Name (e.g. "1927" / "Emily Wurramara")
-      const artistY = infoStartY + (isMobile ? 30 : 34);
-      let artistFontSize = isMobile ? 20 : 22;
+      const titleGap = isMobile ? (height < 500 ? 24 : 30) : 34;
+      const artistY = infoStartY + titleGap;
+      let artistFontSize = isMobile ? (height < 500 ? 16 : 20) : 22;
       hudCtx.font = `${artistFontSize}px "Merchant Copy Doublesize", monospace`;
       const artistMeasureW = hudCtx.measureText(currentTrack.artist.name).width;
       if (artistMeasureW > width - 36) {
-        artistFontSize = Math.max(isMobile ? 14 : 16, Math.floor(artistFontSize * ((width - 36) / artistMeasureW)));
+        artistFontSize = Math.max(isMobile ? 12 : 16, Math.floor(artistFontSize * ((width - 36) / artistMeasureW)));
         hudCtx.font = `${artistFontSize}px "Merchant Copy Doublesize", monospace`;
       }
       hudCtx.letterSpacing = '0.5px';
@@ -408,8 +411,11 @@ export class PlaylistPlayerRenderer {
       hudCtx.restore();
 
       // 6 Streaming Icons in a neat row right below artist
-      const streamY = artistY + (isMobile ? 30 : 36);
-      const iconSize = isMobile ? 18 : 22;
+      // On very short screens (landscape), skip icons to save vertical space
+      const showStreamIcons = height >= 500;
+      const streamGap = isMobile ? (height < 500 ? 22 : 30) : 36;
+      const streamY = showStreamIcons ? artistY + streamGap : artistY + 8;
+      const iconSize = isMobile ? (height < 500 ? 15 : 18) : 22;
       const iconGap = isMobile ? 12 : 16;
       const totalStreamW =
         STREAMING_SERVICES.length * iconSize + (STREAMING_SERVICES.length - 1) * iconGap;
@@ -417,51 +423,74 @@ export class PlaylistPlayerRenderer {
 
       this.hitAreas.streaming = [];
 
-      STREAMING_SERVICES.forEach((svc, i) => {
-        const ix = streamStartX + i * (iconSize + iconGap);
-        const isHovered = this.hoveredElement === `stream_${svc.id}`;
+      if (showStreamIcons) {
+        STREAMING_SERVICES.forEach((svc, i) => {
+          const ix = streamStartX + i * (iconSize + iconGap);
+          const isHovered = this.hoveredElement === `stream_${svc.id}`;
 
-        this.hitAreas.streaming.push({
-          service: svc.id,
-          x: ix - 3,
-          y: streamY - iconSize / 2 - 3,
-          w: iconSize + 6,
-          h: iconSize + 6,
+          this.hitAreas.streaming.push({
+            service: svc.id,
+            x: ix - 3,
+            y: streamY - iconSize / 2 - 3,
+            w: iconSize + 6,
+            h: iconSize + 6,
+          });
+
+          const iconImg = this.streamingImages.get(svc.id);
+          hudCtx.save();
+          if (isHovered) {
+            hudCtx.shadowColor = '#FFFFFF';
+            hudCtx.shadowBlur = 8;
+            hudCtx.fillStyle = '#FFFFFF';
+          } else {
+            hudCtx.shadowColor = '#FF7FEC';
+            hudCtx.shadowBlur = 3;
+            hudCtx.fillStyle = '#FF7FEC';
+          }
+
+          if (iconImg && iconImg.complete && iconImg.naturalWidth > 0) {
+            hudCtx.drawImage(iconImg, ix, streamY - iconSize / 2, iconSize, iconSize);
+          } else {
+            hudCtx.font = '10px ui-monospace, "Courier New", monospace';
+            hudCtx.textAlign = 'center';
+            hudCtx.textBaseline = 'middle';
+            hudCtx.fillText(svc.name.slice(0, 3), ix + iconSize / 2, streamY);
+          }
+          hudCtx.restore();
         });
-
-        const iconImg = this.streamingImages.get(svc.id);
-        hudCtx.save();
-        if (isHovered) {
-          hudCtx.shadowColor = '#FFFFFF';
-          hudCtx.shadowBlur = 8;
-          hudCtx.fillStyle = '#FFFFFF';
-        } else {
-          hudCtx.shadowColor = '#FF7FEC';
-          hudCtx.shadowBlur = 3;
-          hudCtx.fillStyle = '#FF7FEC';
-        }
-
-        if (iconImg && iconImg.complete && iconImg.naturalWidth > 0) {
-          hudCtx.drawImage(iconImg, ix, streamY - iconSize / 2, iconSize, iconSize);
-        } else {
-          hudCtx.font = '10px ui-monospace, "Courier New", monospace';
-          hudCtx.textAlign = 'center';
-          hudCtx.textBaseline = 'middle';
-          hudCtx.fillText(svc.name.slice(0, 3), ix + iconSize / 2, streamY);
-        }
-        hudCtx.restore();
-      });
+      }
 
       // ==========================================================
       // 4. THE CIRCULAR CD DISCS CAROUSEL (Exact Image 1 Spec)
       // ==========================================================
-      const cdRadius = isMobile
+      const isVeryShort = height < 500; // landscape phone or very compact screen
+      const _boxH = isMobile ? 46 : 56;
+      const _boxGap = isMobile ? (isVeryShort ? 28 : 48) : 75; // smaller gap on landscape
+      const _bottomH = isMobile ? 48 : 42;
+      const _safeBot = isMobile ? 4 : 8;
+
+      // Ideal radius from width
+      let cdRadius = isMobile
         ? Math.min(width * 0.25, 94)
         : Math.min(width * 0.135, 136);
+
+      // Shrink radius if vertical space is insufficient (landscape / short phone)
+      const infoEndY = streamY + (isMobile ? (isVeryShort ? 8 : 14) : 18);
+      const availV = height - infoEndY - _bottomH - _safeBot - _boxH - _boxGap;
+      const maxRadiusH = Math.floor(availV / 2);
+      if (maxRadiusH > 0 && maxRadiusH < cdRadius) {
+        cdRadius = Math.max(isMobile ? (isVeryShort ? 40 : 52) : 68, maxRadiusH);
+      }
+
       const cdDiameter = cdRadius * 2;
       const cdGap = isMobile ? 22 : 32;
       const cdSpacing = cdDiameter + cdGap;
-      const cdCenterY = Math.round(height * 0.52);
+
+      // Clamp cdCenterY so disc + controls never overlap bottom bar
+      const idealCdY = Math.round(height * 0.52);
+      const minCdY = infoEndY + cdRadius + 8;
+      const maxCdY = height - _bottomH - _safeBot - _boxH - _boxGap - cdRadius;
+      const cdCenterY = Math.max(minCdY, Math.min(idealCdY, maxCdY));
 
       this.hitAreas.discs = [];
 
@@ -588,15 +617,16 @@ export class PlaylistPlayerRenderer {
       // 5. FOUR CONTROL BOXES BELOW DISCS: [ ♥ ]  [ ▶/❚❚ ]  [ ►► ]  [ 📜 LRC ]
       // ==========================================================
       const boxW = isMobile ? 60 : 74;
-      const boxH = isMobile ? 46 : 56;
+      const boxH = _boxH; // reuse the pre-computed value (46 mobile / 56 desktop)
       const boxGap = isMobile ? 8 : 11;
 
       const totalBoxesW = boxW * 4 + boxGap * 3;
       const startBoxX = centerX - totalBoxesW / 2;
 
-      const controlsY = isMobile
-        ? cdCenterY + cdRadius + 48
-        : Math.min(cdCenterY + cdRadius + 75, height - 120);
+      // controlsY: placed exactly _boxGap below the disc bottom, clamped above bottom bar
+      const controlsYRaw = cdCenterY + cdRadius + (isMobile ? _boxGap : _boxGap);
+      const controlsYMax = height - _bottomH - _safeBot - boxH;
+      const controlsY = Math.min(controlsYRaw, controlsYMax);
 
       // --- Box 1: [ ♥ ] Heart button ---
       const box1X = startBoxX;

@@ -485,7 +485,7 @@ export default function PlaylistPlayerCanvas({
             sound.playClick();
             setIsLyricsModalOpen(true);
           }}
-          className="absolute top-14 right-4 md:top-16 md:right-8 z-30 px-3 py-1.5 border border-[#FF7FEC] bg-black/85 backdrop-blur text-xs font-mono text-[#FF7FEC] hover:bg-[#FF7FEC] hover:text-black transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,127,236,0.3)]"
+          className="absolute top-20 right-3 md:top-[4.5rem] md:right-8 z-30 px-3 py-1.5 border border-[#FF7FEC] bg-black/85 backdrop-blur text-xs font-mono text-[#FF7FEC] hover:bg-[#FF7FEC] hover:text-black transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,127,236,0.3)]"
           title="Open Synced Lyrics (LRC Karaoke)"
         >
           <span>📜 LYRICS</span>

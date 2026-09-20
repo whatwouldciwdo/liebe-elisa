@@ -68,11 +68,11 @@ export default function SyncedLyricsModal({
   const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md font-mono select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-6 bg-black/85 backdrop-blur-md font-mono select-none">
       {/* CRT Scanline Overlay */}
       <div className="absolute inset-0 pointer-events-none crt-lines opacity-30 z-10" />
 
-      <div className="relative w-full max-w-2xl bg-black border-2 border-[#FF7FEC] shadow-[0_0_35px_rgba(255,127,236,0.35)] flex flex-col h-[85vh] max-h-[750px] z-20 overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-black border-2 border-[#FF7FEC] shadow-[0_0_35px_rgba(255,127,236,0.35)] flex flex-col h-[92vh] max-h-[750px] z-20 overflow-hidden">
         {/* ========================================================== */}
         {/* HEADER: Track Title, Artist, and Close */}
         {/* ========================================================== */}

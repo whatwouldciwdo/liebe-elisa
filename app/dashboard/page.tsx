@@ -997,7 +997,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`}
       {/* ========================================================== */}
       {selectedLyricsSong && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="border-2 border-[#FF7FEC] bg-black max-w-lg w-full p-6 relative">
+          <div className="border-2 border-[#FF7FEC] bg-black max-w-lg w-full p-4 md:p-6 relative max-h-[85vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between border-b border-[#FF7FEC] pb-3 mb-4">
               <div>
                 <h3 className="font-bold text-sm text-[#FF7FEC]">{selectedLyricsSong.title}</h3>

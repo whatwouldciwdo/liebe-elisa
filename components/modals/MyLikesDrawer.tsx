@@ -204,7 +204,7 @@ export default function MyLikesDrawer({
 
       {/* Mobile Tab Switcher when Open */}
       {isOpen && isMobile && (
-        <div className="fixed top-12 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/90 p-1 rounded border border-white/40 shadow-lg animate-in fade-in">
+        <div className="fixed top-[4.5rem] left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/90 p-1 rounded border border-white/40 shadow-lg animate-in fade-in">
           <button
             onClick={() => {
               sound.playClick();
