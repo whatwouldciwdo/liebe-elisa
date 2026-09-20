@@ -74,6 +74,8 @@ export default function DashboardPage() {
   const selectedAudioRef = useRef<File | null>(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string>('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [isPreparingCover, setIsPreparingCover] = useState(false);
+  const coverSelectionRef = useRef(0);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string>('');
 
   // Upload progress & status
@@ -176,14 +178,42 @@ export default function DashboardPage() {
   }, [audioPreviewUrl]);
 
   // Cover image selection
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
     sound.playClick();
-    setCoverFile(file);
-    setCoverPreviewUrl(URL.createObjectURL(file));
+    const selection = ++coverSelectionRef.current;
+    setCoverFile(null);
+    setCoverPreviewUrl('');
+    setIsPreparingCover(true);
+    try {
+      const bytes = await file.arrayBuffer();
+      if (!bytes.byteLength) throw new Error('The selected image is empty.');
+      if (selection !== coverSelectionRef.current) return;
+      // Snapshot mobile/cloud-backed files before the potentially long audio upload.
+      const localFile = new File([bytes], file.name, { type: file.type });
+      setCoverFile(localFile);
+      setCoverPreviewUrl(URL.createObjectURL(localFile));
+      setStatusMessage({ text: 'Cover is ready to upload.', type: 'info' });
+    } catch (error) {
+      if (selection === coverSelectionRef.current) {
+        setStatusMessage({
+          text: `Cannot read selected cover: ${error instanceof Error ? error.message : 'File access failed.'} Download the image to your device and select it again.`,
+          type: 'error',
+        });
+      }
+    } finally {
+      if (selection === coverSelectionRef.current) setIsPreparingCover(false);
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrl) URL.revokeObjectURL(coverPreviewUrl);
+    };
+  }, [coverPreviewUrl]);
 
   // Format seconds to mm:ss
   const formatDuration = (seconds: number) => {
@@ -197,6 +227,7 @@ export default function DashboardPage() {
   const handleAddSong = async (e: React.FormEvent) => {
     e.preventDefault();
     sound.playClick();
+    if (isPreparingCover || isSubmitting) return;
 
     if (!title.trim() || !artist.trim()) {
       setStatusMessage({ text: 'Please fill in Title and Artist fields.', type: 'error' });
@@ -671,9 +702,14 @@ export default function DashboardPage() {
                     <input
                       type="file"
                       accept="image/*,.jpg,.jpeg,.png,.webp"
+                      disabled={isSubmitting}
                       onChange={handleCoverChange}
                       className="block w-full text-xs text-[#FF7FEC] file:mr-3 file:py-1.5 file:px-3 file:border file:border-[#FF7FEC] file:text-xs file:bg-black file:text-[#FF7FEC] hover:file:bg-[#FF7FEC] hover:file:text-black cursor-pointer"
                     />
+
+                    {isPreparingCover && (
+                      <p className="mt-2 text-xs text-[#00f5d4]" role="status">Reading cover image...</p>
+                    )}
 
                     {coverPreviewUrl && (
                       <div className="mt-4 flex flex-wrap items-center gap-4">
@@ -779,7 +815,7 @@ export default function DashboardPage() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isPreparingCover}
                   className={`w-full py-4 text-sm font-bold tracking-widest border transition-all uppercase flex items-center justify-center gap-2 ${
                     isSubmitting
                       ? 'border-gray-500 bg-gray-900 text-gray-400 cursor-not-allowed'

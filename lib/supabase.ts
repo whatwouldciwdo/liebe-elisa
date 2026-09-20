@@ -109,9 +109,19 @@ export async function uploadCoverFile(file: File): Promise<{ url: string; path: 
     else if (ext === 'gif') contentType = 'image/gif';
   }
 
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await file.arrayBuffer();
+  } catch {
+    return { url: '', path: '', error: 'Cannot read the cover file. Select the image again before uploading.' };
+  }
+  if (!bytes.byteLength) {
+    return { url: '', path: '', error: 'The cover image is empty.' };
+  }
+
   const { error: uploadError } = await supabase.storage
     .from('songs-covers')
-    .upload(filePath, file, {
+    .upload(filePath, bytes, {
       contentType: contentType || undefined,
       cacheControl: '3600',
       upsert: false,
