@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { useRouter } from 'next/navigation';
 import { CrtShader } from './CrtEffect';
@@ -10,6 +10,7 @@ import {
   STREAMING_SERVICES,
 } from '@/lib/playlistPlayerRenderer';
 import { sound } from '@/lib/audio';
+import SyncedLyricsModal from '@/components/modals/SyncedLyricsModal';
 
 interface PlaylistPlayerCanvasProps {
   playlist: PlaylistData;
@@ -36,7 +37,14 @@ export default function PlaylistPlayerCanvas({
 }: PlaylistPlayerCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
+
+  const [activeTrackIndex, setActiveTrackIndex] = useState(initialTrackIndex);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isLyricsModalOpen, setIsLyricsModalOpen] = useState(false);
 
   const onToggleLikeRef = useRef(onToggleLike);
   onToggleLikeRef.current = onToggleLike;
@@ -58,6 +66,8 @@ export default function PlaylistPlayerCanvas({
 
   const rendererInstanceRef = useRef<PlaylistPlayerRenderer | null>(null);
 
+  const currentTrack = playlist.tracks[activeTrackIndex];
+
   // Sync liked tracks
   useEffect(() => {
     if (rendererInstanceRef.current) {
@@ -65,15 +75,69 @@ export default function PlaylistPlayerCanvas({
     }
   }, [likedTracks]);
 
-  // Jump to track if initialTrackIndex changes
+  // Jump to track if initialTrackIndex prop changes
   useEffect(() => {
     if (rendererInstanceRef.current && initialTrackIndex !== undefined) {
       if (rendererInstanceRef.current.currentTrackIndex !== initialTrackIndex) {
         rendererInstanceRef.current.jumpToTrack(initialTrackIndex);
+        setActiveTrackIndex(initialTrackIndex);
       }
     }
   }, [initialTrackIndex]);
 
+  // Play / Pause audio handler
+  const togglePlayAudio = useCallback(() => {
+    const audio = audioRef.current;
+    const track = playlist.tracks[activeTrackIndex];
+
+    if (audio && track?.audioUrl) {
+      if (audio.paused) {
+        audio.play().catch((e) => console.warn('Audio play error:', e));
+      } else {
+        audio.pause();
+      }
+    } else {
+      // Fallback: visual-only disc spinning
+      if (rendererInstanceRef.current) {
+        rendererInstanceRef.current.togglePlay();
+        setIsAudioPlaying(rendererInstanceRef.current.isPlaying);
+      }
+    }
+  }, [playlist.tracks, activeTrackIndex]);
+
+  const togglePlayRef = useRef(togglePlayAudio);
+  togglePlayRef.current = togglePlayAudio;
+
+  // Load new audio source when active track changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (currentTrack?.audioUrl) {
+      if (audio.src !== currentTrack.audioUrl) {
+        audio.src = currentTrack.audioUrl;
+        audio.load();
+        if (isAudioPlaying) {
+          audio.play().catch((e) => console.warn('Audio auto-play blocked:', e));
+        }
+      }
+    } else {
+      audio.removeAttribute('src');
+      setCurrentTime(0);
+      setDuration(currentTrack?.duration || 0);
+    }
+  }, [activeTrackIndex, currentTrack?.audioUrl, isAudioPlaying, currentTrack?.duration]);
+
+  // Handle seeking from lyrics modal or scrubber
+  const handleSeek = (time: number) => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  // Three.js & 2D Canvas setup
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -153,7 +217,7 @@ export default function PlaylistPlayerCanvas({
     const postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), crtMaterial);
     postScene.add(postQuad);
 
-    // 3b. Crisp HUD Scene (Renders text, icons & buttons directly on top without glitch blur)
+    // 3b. Crisp HUD Scene (Renders text, icons & buttons directly on top)
     const hudTexture = new THREE.CanvasTexture(playerRenderer.hudCanvas);
     hudTexture.minFilter = THREE.LinearFilter;
     hudTexture.magFilter = THREE.LinearFilter;
@@ -234,9 +298,13 @@ export default function PlaylistPlayerCanvas({
             sound.playChime([523.25, 659.25, 783.99]);
           }
         } else if (hit === 'playBox') {
-          playerRenderer.togglePlay();
+          togglePlayRef.current?.();
         } else if (hit === 'nextBox') {
           playerRenderer.nextTrack();
+        } else if (hit === 'lyricsBox') {
+          setIsLyricsModalOpen(true);
+        } else if (hit === 'goToDashboard') {
+          router.push('/dashboard');
         } else if (hit === 'howToDefy') {
           onOpenHowToDefyRef.current?.();
         } else if (hit === 'dailySelector') {
@@ -246,17 +314,17 @@ export default function PlaylistPlayerCanvas({
         } else if (hit.startsWith('disc_')) {
           const idx = parseInt(hit.replace('disc_', ''), 10);
           if (idx === playerRenderer.currentTrackIndex) {
-            playerRenderer.togglePlay();
+            togglePlayRef.current?.();
           } else {
             playerRenderer.jumpToTrack(idx);
           }
         } else if (hit.startsWith('stream_')) {
           const svcId = hit.replace('stream_', '');
-          const currentTrack = playlist.tracks[playerRenderer.currentTrackIndex];
-          if (currentTrack) {
+          const curTrack = playlist.tracks[playerRenderer.currentTrackIndex];
+          if (curTrack) {
             const svc = STREAMING_SERVICES.find((s) => s.id === svcId);
             if (svc) {
-              const query = encodeURIComponent(`${currentTrack.name} ${currentTrack.artist.name}`);
+              const query = encodeURIComponent(`${curTrack.name} ${curTrack.artist.name}`);
               window.open(`${svc.url}${query}`, '_blank');
             }
           }
@@ -271,7 +339,7 @@ export default function PlaylistPlayerCanvas({
         playerRenderer.nextTrack();
       } else if (e.key === ' ' || e.key === 'k') {
         e.preventDefault();
-        playerRenderer.togglePlay();
+        togglePlayRef.current?.();
       }
     };
 
@@ -332,6 +400,7 @@ export default function PlaylistPlayerCanvas({
       // Track change callback
       if (playerRenderer.currentTrackIndex !== lastTrackIndex) {
         lastTrackIndex = playerRenderer.currentTrackIndex;
+        setActiveTrackIndex(lastTrackIndex);
         onTrackChangeRef.current?.(lastTrackIndex);
       }
 
@@ -374,11 +443,74 @@ export default function PlaylistPlayerCanvas({
       playerTexture.dispose();
       renderer.dispose();
     };
-  }, [playlist]);
+  }, [playlist, initialTrackIndex, likedTracks]);
 
   return (
     <div ref={containerRef} className="relative w-full h-full select-none overflow-hidden bg-black">
+      {/* HTML5 Audio element */}
+      <audio
+        ref={audioRef}
+        onPlay={() => {
+          setIsAudioPlaying(true);
+          if (rendererInstanceRef.current) rendererInstanceRef.current.isPlaying = true;
+        }}
+        onPause={() => {
+          setIsAudioPlaying(false);
+          if (rendererInstanceRef.current) rendererInstanceRef.current.isPlaying = false;
+        }}
+        onTimeUpdate={() => {
+          if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+          }
+        }}
+        onLoadedMetadata={() => {
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration || currentTrack?.duration || 0);
+          }
+        }}
+        onEnded={() => {
+          if (rendererInstanceRef.current) {
+            rendererInstanceRef.current.nextTrack();
+          }
+        }}
+      />
+
+      {/* WebGL Canvas */}
       <canvas ref={canvasRef} className="block w-full h-full" />
+
+      {/* Floating Synced Lyrics HUD Button (Top Right) */}
+      {currentTrack && (
+        <button
+          onClick={() => {
+            sound.playClick();
+            setIsLyricsModalOpen(true);
+          }}
+          className="absolute top-14 right-4 md:top-16 md:right-8 z-30 px-3 py-1.5 border border-[#FF7FEC] bg-black/85 backdrop-blur text-xs font-mono text-[#FF7FEC] hover:bg-[#FF7FEC] hover:text-black transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(255,127,236,0.3)]"
+          title="Open Synced Lyrics (LRC Karaoke)"
+        >
+          <span>📜 LYRICS</span>
+          {currentTrack.lyrics && (
+            <span className="text-[10px] text-[#00f5d4] border border-[#00f5d4] px-1 font-bold">
+              SYNCED
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Karaoke Synced Lyrics Modal */}
+      <SyncedLyricsModal
+        isOpen={isLyricsModalOpen}
+        onClose={() => setIsLyricsModalOpen(false)}
+        trackTitle={currentTrack?.name || ''}
+        artistName={currentTrack?.artist?.name || ''}
+        artworkUrl={currentTrack?.artworkUrl}
+        lyricsText={currentTrack?.lyrics || ''}
+        currentTime={currentTime}
+        duration={duration}
+        isPlaying={isAudioPlaying}
+        onSeek={handleSeek}
+        onTogglePlay={togglePlayAudio}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { notFound, useRouter } from 'next/navigation';
 import dailyPlaylistsData from '@/public/data/dailyPlaylists.json';
 import { PlaylistData, TrackData, DAILY_LETTER_MAP } from '@/lib/playlistPlayerRenderer';
+import { fetchSongs } from '@/lib/supabase';
 import HowToDefyModal from '@/components/modals/HowToDefyModal';
 import MyLikesDrawer from '@/components/modals/MyLikesDrawer';
 import LetterSelectorModal from '@/components/modals/LetterSelectorModal';
@@ -60,16 +61,78 @@ export default function DailyPlaylistPage({ params }: DailyPlaylistPageProps) {
     notFound();
   }
 
-  const playlist: PlaylistData = {
+  // Supabase dynamic songs state
+  const [supabaseTracks, setSupabaseTracks] = useState<TrackData[]>([]);
+  const [globalSupabaseTracks, setGlobalSupabaseTracks] = useState<TrackData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadTracks() {
+      setIsLoading(true);
+      try {
+        const resAll = await fetchSongs('ALL');
+        if (!isMounted) return;
+
+        if (resAll.data && Array.isArray(resAll.data)) {
+          const allMapped: TrackData[] = resAll.data.map((s) => ({
+            id: s.id,
+            name: s.title,
+            artist: { id: s.id, name: s.artist },
+            album: s.album || '',
+            year: s.year || '',
+            duration: s.duration || 0,
+            artworkUrl: s.artwork_url || '',
+            audioUrl: s.audio_url,
+            lyrics: s.lyrics || '',
+            links: s.links ? Object.entries(s.links).map(([k, v]) => ({ id: k, url: v })) : [],
+          }));
+          setGlobalSupabaseTracks(allMapped);
+
+          // Filter tracks for this specific letter
+          const letterTracks = allMapped.filter(
+            (t, idx) => resAll.data[idx]?.playlist_key?.toUpperCase() === targetKey
+          );
+          setSupabaseTracks(letterTracks);
+        }
+      } catch (err) {
+        console.warn('Error loading Supabase tracks:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadTracks();
+    return () => {
+      isMounted = false;
+    };
+  }, [targetKey]);
+
+  // Combine Supabase tracks with any existing local tracks
+  const combinedTracks = useMemo(() => {
+    if (supabaseTracks.length > 0) {
+      return supabaseTracks;
+    }
+    return rawPlaylist.tracks || [];
+  }, [supabaseTracks, rawPlaylist.tracks]);
+
+  const playlist: PlaylistData = useMemo(() => ({
     id: rawPlaylist.id || `ausify25az-${targetKey.toLowerCase()}`,
     name: rawPlaylist.name || targetKey,
     type: rawPlaylist.type || 'AZ',
-    tracks: rawPlaylist.tracks || [],
-  };
+    tracks: combinedTracks,
+  }), [rawPlaylist, targetKey, combinedTracks]);
 
   // Build global tracks map across all playlists so tracks from any letter are preserved
   const allGlobalTracksMap = useMemo(() => {
     const map = new Map<string, TrackData>();
+    // First include all Supabase tracks
+    globalSupabaseTracks.forEach((t) => {
+      if (t && t.id) {
+        map.set(String(t.id), t);
+      }
+    });
+    // Then include any static tracks
     Object.values(allPlaylists).forEach((p: any) => {
       if (Array.isArray(p?.tracks)) {
         p.tracks.forEach((t: TrackData) => {
@@ -80,7 +143,7 @@ export default function DailyPlaylistPage({ params }: DailyPlaylistPageProps) {
       }
     });
     return map;
-  }, [allPlaylists]);
+  }, [globalSupabaseTracks, allPlaylists]);
 
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isHowToDefyOpen, setIsHowToDefyOpen] = useState(false);

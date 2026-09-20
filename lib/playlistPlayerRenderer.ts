@@ -14,6 +14,8 @@ export interface TrackData {
     name: string;
   };
   links?: any[];
+  audioUrl?: string;
+  lyrics?: string;
 }
 
 export interface PlaylistData {
@@ -29,6 +31,8 @@ export interface PlayerHitAreas {
   heartBox: { x: number; y: number; w: number; h: number };
   playBox: { x: number; y: number; w: number; h: number };
   nextBox: { x: number; y: number; w: number; h: number };
+  lyricsBox?: { x: number; y: number; w: number; h: number };
+  goToDashboard?: { x: number; y: number; w: number; h: number };
   howToDefy: { x: number; y: number; w: number; h: number };
   dailySelector: { x: number; y: number; w: number; h: number };
   myLikesCard: { x: number; y: number; w: number; h: number };
@@ -87,6 +91,8 @@ export class PlaylistPlayerRenderer {
     heartBox: { x: 0, y: 0, w: 0, h: 0 },
     playBox: { x: 0, y: 0, w: 0, h: 0 },
     nextBox: { x: 0, y: 0, w: 0, h: 0 },
+    lyricsBox: { x: 0, y: 0, w: 0, h: 0 },
+    goToDashboard: { x: 0, y: 0, w: 0, h: 0 },
     howToDefy: { x: 0, y: 0, w: 0, h: 0 },
     dailySelector: { x: 0, y: 0, w: 0, h: 0 },
     myLikesCard: { x: 0, y: 0, w: 0, h: 0 },
@@ -364,309 +370,372 @@ export class PlaylistPlayerRenderer {
     hudCtx.restore();
 
     // ==========================================================
-    // 3. TRACK TITLE, ARTIST NAME & STREAMING ICONS (Exact Image 1 layout)
+    // 3. TRACK TITLE, ARTIST NAME, CD DISCS & CONTROLS
     // ==========================================================
-    const infoStartY = isMobile
-      ? Math.max(120, Math.round(height * 0.25))
-      : Math.max(margin + barHeight + 45, height * 0.14);
+    if (currentTrack && tracks.length > 0) {
+      const infoStartY = isMobile
+        ? Math.max(120, Math.round(height * 0.25))
+        : Math.max(margin + barHeight + 45, height * 0.14);
 
-    // Track Title (e.g. "That's When I Think Of You" / "Adore Me")
-    hudCtx.save();
-    let titleFontSize = isMobile ? 26 : 30;
-    hudCtx.font = `${titleFontSize}px "Merchant Copy Doublesize", monospace`;
-    const titleW = hudCtx.measureText(currentTrack.name).width;
-    if (titleW > width - 36) {
-      titleFontSize = Math.max(isMobile ? 18 : 22, Math.floor(titleFontSize * ((width - 36) / titleW)));
-      hudCtx.font = `${titleFontSize}px "Merchant Copy Doublesize", monospace`;
-    }
-    hudCtx.letterSpacing = '0.5px';
-    hudCtx.fillStyle = '#FF7FEC';
-    hudCtx.shadowColor = '#FF7FEC';
-    hudCtx.shadowBlur = 4;
-    hudCtx.textAlign = 'center';
-    hudCtx.textBaseline = 'middle';
-    hudCtx.fillText(currentTrack.name, centerX, infoStartY);
-
-    // Artist Name (e.g. "1927" / "Emily Wurramara")
-    const artistY = infoStartY + (isMobile ? 30 : 34);
-    let artistFontSize = isMobile ? 20 : 22;
-    hudCtx.font = `${artistFontSize}px "Merchant Copy Doublesize", monospace`;
-    const artistMeasureW = hudCtx.measureText(currentTrack.artist.name).width;
-    if (artistMeasureW > width - 36) {
-      artistFontSize = Math.max(isMobile ? 14 : 16, Math.floor(artistFontSize * ((width - 36) / artistMeasureW)));
-      hudCtx.font = `${artistFontSize}px "Merchant Copy Doublesize", monospace`;
-    }
-    hudCtx.letterSpacing = '0.5px';
-    hudCtx.fillText(currentTrack.artist.name, centerX, artistY);
-    hudCtx.restore();
-
-    // 6 Streaming Icons in a neat row right below artist
-    const streamY = artistY + (isMobile ? 30 : 36);
-    const iconSize = isMobile ? 18 : 22;
-    const iconGap = isMobile ? 12 : 16;
-    const totalStreamW =
-      STREAMING_SERVICES.length * iconSize + (STREAMING_SERVICES.length - 1) * iconGap;
-    const streamStartX = centerX - totalStreamW / 2;
-
-    this.hitAreas.streaming = [];
-
-    STREAMING_SERVICES.forEach((svc, i) => {
-      const ix = streamStartX + i * (iconSize + iconGap);
-      const isHovered = this.hoveredElement === `stream_${svc.id}`;
-
-      this.hitAreas.streaming.push({
-        service: svc.id,
-        x: ix - 3,
-        y: streamY - iconSize / 2 - 3,
-        w: iconSize + 6,
-        h: iconSize + 6,
-      });
-
-      const iconImg = this.streamingImages.get(svc.id);
+      // Track Title (e.g. "That's When I Think Of You" / "Adore Me")
       hudCtx.save();
-      if (isHovered) {
-        hudCtx.shadowColor = '#FFFFFF';
-        hudCtx.shadowBlur = 8;
-        hudCtx.fillStyle = '#FFFFFF';
-      } else {
-        hudCtx.shadowColor = '#FF7FEC';
-        hudCtx.shadowBlur = 3;
-        hudCtx.fillStyle = '#FF7FEC';
+      let titleFontSize = isMobile ? 26 : 30;
+      hudCtx.font = `${titleFontSize}px "Merchant Copy Doublesize", monospace`;
+      const titleW = hudCtx.measureText(currentTrack.name).width;
+      if (titleW > width - 36) {
+        titleFontSize = Math.max(isMobile ? 18 : 22, Math.floor(titleFontSize * ((width - 36) / titleW)));
+        hudCtx.font = `${titleFontSize}px "Merchant Copy Doublesize", monospace`;
       }
+      hudCtx.letterSpacing = '0.5px';
+      hudCtx.fillStyle = '#FF7FEC';
+      hudCtx.shadowColor = '#FF7FEC';
+      hudCtx.shadowBlur = 4;
+      hudCtx.textAlign = 'center';
+      hudCtx.textBaseline = 'middle';
+      hudCtx.fillText(currentTrack.name, centerX, infoStartY);
 
-      if (iconImg && iconImg.complete && iconImg.naturalWidth > 0) {
-        hudCtx.drawImage(iconImg, ix, streamY - iconSize / 2, iconSize, iconSize);
-      } else {
-        hudCtx.font = '10px ui-monospace, "Courier New", monospace';
-        hudCtx.textAlign = 'center';
-        hudCtx.textBaseline = 'middle';
-        hudCtx.fillText(svc.name.slice(0, 3), ix + iconSize / 2, streamY);
+      // Artist Name (e.g. "1927" / "Emily Wurramara")
+      const artistY = infoStartY + (isMobile ? 30 : 34);
+      let artistFontSize = isMobile ? 20 : 22;
+      hudCtx.font = `${artistFontSize}px "Merchant Copy Doublesize", monospace`;
+      const artistMeasureW = hudCtx.measureText(currentTrack.artist.name).width;
+      if (artistMeasureW > width - 36) {
+        artistFontSize = Math.max(isMobile ? 14 : 16, Math.floor(artistFontSize * ((width - 36) / artistMeasureW)));
+        hudCtx.font = `${artistFontSize}px "Merchant Copy Doublesize", monospace`;
       }
+      hudCtx.letterSpacing = '0.5px';
+      hudCtx.fillText(currentTrack.artist.name, centerX, artistY);
       hudCtx.restore();
-    });
 
-    // ==========================================================
-    // 4. THE CIRCULAR CD DISCS CAROUSEL (Exact Image 1 Spec)
-    // ==========================================================
-    const cdRadius = isMobile
-      ? Math.min(width * 0.25, 94)
-      : Math.min(width * 0.135, 136);
-    const cdDiameter = cdRadius * 2;
-    const cdGap = isMobile ? 22 : 32;
-    const cdSpacing = cdDiameter + cdGap;
-    const cdCenterY = Math.round(height * 0.52);
+      // 6 Streaming Icons in a neat row right below artist
+      const streamY = artistY + (isMobile ? 30 : 36);
+      const iconSize = isMobile ? 18 : 22;
+      const iconGap = isMobile ? 12 : 16;
+      const totalStreamW =
+        STREAMING_SERVICES.length * iconSize + (STREAMING_SERVICES.length - 1) * iconGap;
+      const streamStartX = centerX - totalStreamW / 2;
 
-    this.hitAreas.discs = [];
+      this.hitAreas.streaming = [];
 
-    // Range of visible discs: render -3 to +3
-    const centerIdx = Math.round(this.currentTrackPos);
-    const renderMin = Math.max(0, centerIdx - 3);
-    const renderMax = Math.min(tracks.length - 1, centerIdx + 3);
+      STREAMING_SERVICES.forEach((svc, i) => {
+        const ix = streamStartX + i * (iconSize + iconGap);
+        const isHovered = this.hoveredElement === `stream_${svc.id}`;
 
-    for (let idx = renderMin; idx <= renderMax; idx++) {
-      const track = tracks[idx];
-      const relPos = idx - this.currentTrackPos;
-      const screenX = centerX + relPos * cdSpacing;
+        this.hitAreas.streaming.push({
+          service: svc.id,
+          x: ix - 3,
+          y: streamY - iconSize / 2 - 3,
+          w: iconSize + 6,
+          h: iconSize + 6,
+        });
 
-      // Cull off screen
-      if (screenX < -cdRadius || screenX > width + cdRadius) continue;
-
-      const dist = Math.abs(relPos);
-      const isCenterDisc = dist < 0.45;
-
-      // Dim non-center discs slightly, active center disc is 1.0 brightness
-      const alpha = Math.max(0.35, 1.0 - dist * 0.35);
-
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.translate(screenX, cdCenterY);
-
-      // --- 1. CIRCLE CLIP FOR DISC ---
-      ctx.beginPath();
-      ctx.arc(0, 0, cdRadius, 0, Math.PI * 2);
-      ctx.clip();
-
-      // --- 2. ALBUM ARTWORK ROTATING IF ACTIVE ---
-      ctx.save();
-      if (isCenterDisc && this.isPlaying) {
-        ctx.rotate(this.discSpinAngle);
-      }
-
-      const artwork = this.artworkCache.get(track.artworkUrl || '');
-      if (artwork && artwork.complete && artwork.naturalWidth > 0) {
-        ctx.drawImage(artwork, -cdRadius, -cdRadius, cdDiameter, cdDiameter);
-      } else {
-        // Fallback artistic CD pattern
-        ctx.fillStyle = '#180f24';
-        ctx.fillRect(-cdRadius, -cdRadius, cdDiameter, cdDiameter);
-        ctx.fillStyle = '#FF7FEC';
-        ctx.font = '12px ui-monospace, "Courier New", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(track.name.slice(0, 16), 0, -10);
-      }
-      ctx.restore();
-
-      // --- 3. CD SURFACE IRIDESCENCE & LIGHTING REFLECTION ---
-      const sheen = ctx.createLinearGradient(-cdRadius, -cdRadius, cdRadius, cdRadius);
-      sheen.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
-      sheen.addColorStop(0.3, 'rgba(0, 245, 212, 0.08)');
-      sheen.addColorStop(0.5, 'rgba(255, 127, 236, 0.08)');
-      sheen.addColorStop(0.7, 'rgba(255, 255, 255, 0.05)');
-      sheen.addColorStop(1, 'rgba(255, 255, 255, 0.22)');
-      ctx.fillStyle = sheen;
-      ctx.fill();
-
-      // --- 4. TRANSPARENT PLASTIC CENTER HUB & SPINDLE HOLE ---
-      // Plastic frosted hub ring (radius * 0.35)
-      ctx.beginPath();
-      ctx.arc(0, 0, cdRadius * 0.35, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(12, 10, 16, 0.88)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      // Plastic inner concentric groove ring (radius * 0.24)
-      ctx.beginPath();
-      ctx.arc(0, 0, cdRadius * 0.24, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Center Spindle Hole (radius * 0.12) - pure black empty hole
-      ctx.beginPath();
-      ctx.arc(0, 0, cdRadius * 0.12, 0, Math.PI * 2);
-      ctx.fillStyle = '#000000';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Outer rim edge
-      ctx.beginPath();
-      ctx.arc(0, 0, cdRadius - 0.5, 0, Math.PI * 2);
-      ctx.strokeStyle = isCenterDisc ? 'rgba(255, 127, 236, 0.6)' : 'rgba(100, 100, 100, 0.3)';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      ctx.restore();
-
-      // Record hit area for click
-      this.hitAreas.discs.push({
-        index: idx,
-        x: screenX,
-        y: cdCenterY,
-        radius: cdRadius,
-      });
-
-      // Pink pixel heart below CD disc if track is liked (media_1789723900419.jpg & media_1789723918450.jpg)
-      const isTrackLiked = this.likedTracks.has(String(track.id)) || this.likedTracks.has(track.id);
-      if (isTrackLiked) {
-        const heartW = 21;
-        const heartH = 18;
-        const heartX = screenX - heartW / 2;
-        const heartY = cdCenterY + cdRadius + (isMobile ? 14 : 20);
-
+        const iconImg = this.streamingImages.get(svc.id);
         hudCtx.save();
-        hudCtx.globalAlpha = alpha;
-        hudCtx.shadowColor = '#FF7FEC';
-        hudCtx.shadowBlur = 6;
-        const trackHeart = this.controlImages.get('track-heart');
-        if (trackHeart && trackHeart.complete && trackHeart.naturalWidth > 0) {
-          hudCtx.drawImage(trackHeart, heartX, heartY, heartW, heartH);
+        if (isHovered) {
+          hudCtx.shadowColor = '#FFFFFF';
+          hudCtx.shadowBlur = 8;
+          hudCtx.fillStyle = '#FFFFFF';
         } else {
-          drawPixelHeart(hudCtx, screenX, heartY + heartH / 2, '#FF7FEC');
+          hudCtx.shadowColor = '#FF7FEC';
+          hudCtx.shadowBlur = 3;
+          hudCtx.fillStyle = '#FF7FEC';
+        }
+
+        if (iconImg && iconImg.complete && iconImg.naturalWidth > 0) {
+          hudCtx.drawImage(iconImg, ix, streamY - iconSize / 2, iconSize, iconSize);
+        } else {
+          hudCtx.font = '10px ui-monospace, "Courier New", monospace';
+          hudCtx.textAlign = 'center';
+          hudCtx.textBaseline = 'middle';
+          hudCtx.fillText(svc.name.slice(0, 3), ix + iconSize / 2, streamY);
         }
         hudCtx.restore();
+      });
+
+      // ==========================================================
+      // 4. THE CIRCULAR CD DISCS CAROUSEL (Exact Image 1 Spec)
+      // ==========================================================
+      const cdRadius = isMobile
+        ? Math.min(width * 0.25, 94)
+        : Math.min(width * 0.135, 136);
+      const cdDiameter = cdRadius * 2;
+      const cdGap = isMobile ? 22 : 32;
+      const cdSpacing = cdDiameter + cdGap;
+      const cdCenterY = Math.round(height * 0.52);
+
+      this.hitAreas.discs = [];
+
+      // Range of visible discs: render -3 to +3
+      const centerIdx = Math.round(this.currentTrackPos);
+      const renderMin = Math.max(0, centerIdx - 3);
+      const renderMax = Math.min(tracks.length - 1, centerIdx + 3);
+
+      for (let idx = renderMin; idx <= renderMax; idx++) {
+        const track = tracks[idx];
+        const relPos = idx - this.currentTrackPos;
+        const screenX = centerX + relPos * cdSpacing;
+
+        // Cull off screen
+        if (screenX < -cdRadius || screenX > width + cdRadius) continue;
+
+        const dist = Math.abs(relPos);
+        const isCenterDisc = dist < 0.45;
+
+        // Dim non-center discs slightly, active center disc is 1.0 brightness
+        const alpha = Math.max(0.35, 1.0 - dist * 0.35);
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(screenX, cdCenterY);
+
+        // --- 1. CIRCLE CLIP FOR DISC ---
+        ctx.beginPath();
+        ctx.arc(0, 0, cdRadius, 0, Math.PI * 2);
+        ctx.clip();
+
+        // --- 2. ALBUM ARTWORK ROTATING IF ACTIVE ---
+        ctx.save();
+        if (isCenterDisc && this.isPlaying) {
+          ctx.rotate(this.discSpinAngle);
+        }
+
+        const artwork = this.artworkCache.get(track.artworkUrl || '');
+        if (artwork && artwork.complete && artwork.naturalWidth > 0) {
+          ctx.drawImage(artwork, -cdRadius, -cdRadius, cdDiameter, cdDiameter);
+        } else {
+          // Fallback artistic CD pattern
+          ctx.fillStyle = '#180f24';
+          ctx.fillRect(-cdRadius, -cdRadius, cdDiameter, cdDiameter);
+          ctx.fillStyle = '#FF7FEC';
+          ctx.font = '12px ui-monospace, "Courier New", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(track.name.slice(0, 16), 0, -10);
+        }
+        ctx.restore();
+
+        // --- 3. CD SURFACE IRIDESCENCE & LIGHTING REFLECTION ---
+        const sheen = ctx.createLinearGradient(-cdRadius, -cdRadius, cdRadius, cdRadius);
+        sheen.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+        sheen.addColorStop(0.3, 'rgba(0, 245, 212, 0.08)');
+        sheen.addColorStop(0.5, 'rgba(255, 127, 236, 0.08)');
+        sheen.addColorStop(0.7, 'rgba(255, 255, 255, 0.05)');
+        sheen.addColorStop(1, 'rgba(255, 255, 255, 0.22)');
+        ctx.fillStyle = sheen;
+        ctx.fill();
+
+        // --- 4. TRANSPARENT PLASTIC CENTER HUB & SPINDLE HOLE ---
+        ctx.beginPath();
+        ctx.arc(0, 0, cdRadius * 0.35, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(12, 10, 16, 0.88)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, cdRadius * 0.24, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, cdRadius * 0.12, 0, Math.PI * 2);
+        ctx.fillStyle = '#000000';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, cdRadius - 0.5, 0, Math.PI * 2);
+        ctx.strokeStyle = isCenterDisc ? 'rgba(255, 127, 236, 0.6)' : 'rgba(100, 100, 100, 0.3)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+
+        this.hitAreas.discs.push({
+          index: idx,
+          x: screenX,
+          y: cdCenterY,
+          radius: cdRadius,
+        });
+
+        // Pink pixel heart below CD disc if track is liked
+        const isTrackLiked = this.likedTracks.has(String(track.id)) || this.likedTracks.has(track.id);
+        if (isTrackLiked) {
+          const heartW = 21;
+          const heartH = 18;
+          const heartX = screenX - heartW / 2;
+          const heartY = cdCenterY + cdRadius + (isMobile ? 14 : 20);
+
+          hudCtx.save();
+          hudCtx.globalAlpha = alpha;
+          hudCtx.shadowColor = '#FF7FEC';
+          hudCtx.shadowBlur = 6;
+          const trackHeart = this.controlImages.get('track-heart');
+          if (trackHeart && trackHeart.complete && trackHeart.naturalWidth > 0) {
+            hudCtx.drawImage(trackHeart, heartX, heartY, heartW, heartH);
+          } else {
+            drawPixelHeart(hudCtx, screenX, heartY + heartH / 2, '#FF7FEC');
+          }
+          hudCtx.restore();
+        }
       }
-    }
 
-    // ==========================================================
-    // 5. THREE CONTROL BOXES BELOW DISCS: [ ♥ ]  [ ▶/❚❚ ]  [ ►► ]
-    // Exact sizing: 54x40 on mobile, 74x56 on desktop
-    // ==========================================================
-    const boxW = isMobile ? 68 : 74;
-    const boxH = isMobile ? 50 : 56;
-    const boxGap = isMobile ? 10 : 11;
+      // ==========================================================
+      // 5. FOUR CONTROL BOXES BELOW DISCS: [ ♥ ]  [ ▶/❚❚ ]  [ ►► ]  [ 📜 LRC ]
+      // ==========================================================
+      const boxW = isMobile ? 60 : 74;
+      const boxH = isMobile ? 46 : 56;
+      const boxGap = isMobile ? 8 : 11;
 
-    const totalBoxesW = boxW * 3 + boxGap * 2;
-    const startBoxX = centerX - totalBoxesW / 2;
+      const totalBoxesW = boxW * 4 + boxGap * 3;
+      const startBoxX = centerX - totalBoxesW / 2;
 
-    const controlsY = isMobile
-      ? cdCenterY + cdRadius + 48
-      : Math.min(cdCenterY + cdRadius + 75, height - 120);
+      const controlsY = isMobile
+        ? cdCenterY + cdRadius + 48
+        : Math.min(cdCenterY + cdRadius + 75, height - 120);
 
-    const isCurrentLiked = currentTrack && (this.likedTracks.has(String(currentTrack.id)) || this.likedTracks.has(currentTrack.id));
+      // --- Box 1: [ ♥ ] Heart button ---
+      const box1X = startBoxX;
+      this.hitAreas.heartBox = { x: box1X, y: controlsY, w: boxW, h: boxH };
+      const isHeartHover = this.hoveredElement === 'heartBox';
+      const heartSpriteName = isHeartHover ? 'heart-hover' : 'heart';
+      const heartSprite = this.controlImages.get(heartSpriteName);
 
-    // --- Box 1: [ ♥ ] Heart button ---
-    const box1X = startBoxX;
-    this.hitAreas.heartBox = { x: box1X, y: controlsY, w: boxW, h: boxH };
-    const isHeartHover = this.hoveredElement === 'heartBox';
-    const heartSpriteName = isHeartHover ? 'heart-hover' : 'heart';
-    const heartSprite = this.controlImages.get(heartSpriteName);
-
-    hudCtx.save();
-    if (heartSprite && heartSprite.complete && heartSprite.naturalWidth > 0) {
-      hudCtx.drawImage(heartSprite, box1X, controlsY, boxW, boxH);
-    } else {
-      hudCtx.fillStyle = isHeartHover ? '#FF7FEC' : '#000000';
-      hudCtx.fillRect(box1X, controlsY, boxW, boxH);
-      hudCtx.strokeStyle = '#FF7FEC';
-      hudCtx.lineWidth = 1.5;
-      hudCtx.strokeRect(box1X, controlsY, boxW, boxH);
-      drawPixelHeart(hudCtx, box1X + boxW / 2, controlsY + boxH / 2, isHeartHover ? '#000000' : '#FF7FEC', isMobile ? 2.3 : 2.5);
-    }
-    hudCtx.restore();
-
-    // --- Box 2: [ ▶ ] / [ ❚❚ ] Play/Pause button ---
-    const box2X = startBoxX + boxW + boxGap;
-    this.hitAreas.playBox = { x: box2X, y: controlsY, w: boxW, h: boxH };
-    const isPlayHover = this.hoveredElement === 'playBox';
-
-    const playSpriteName = this.isPlaying
-      ? (isPlayHover ? 'pause-hover' : 'pause')
-      : (isPlayHover ? 'play-hover' : 'play');
-    const playSprite = this.controlImages.get(playSpriteName);
-
-    hudCtx.save();
-    if (playSprite && playSprite.complete && playSprite.naturalWidth > 0) {
-      hudCtx.drawImage(playSprite, box2X, controlsY, boxW, boxH);
-    } else {
-      hudCtx.fillStyle = isPlayHover ? '#FF7FEC' : '#000000';
-      hudCtx.fillRect(box2X, controlsY, boxW, boxH);
-      hudCtx.strokeStyle = '#FF7FEC';
-      hudCtx.lineWidth = 1.5;
-      hudCtx.strokeRect(box2X, controlsY, boxW, boxH);
-      const iconColor = isPlayHover ? '#000000' : '#FF7FEC';
-      if (this.isPlaying) {
-        drawPixelPause(hudCtx, box2X + boxW / 2, controlsY + boxH / 2, iconColor, isMobile ? 1.1 : 1.2);
+      hudCtx.save();
+      if (heartSprite && heartSprite.complete && heartSprite.naturalWidth > 0) {
+        hudCtx.drawImage(heartSprite, box1X, controlsY, boxW, boxH);
       } else {
-        drawPixelPlay(hudCtx, box2X + boxW / 2, controlsY + boxH / 2, iconColor, isMobile ? 1.1 : 1.2);
+        hudCtx.fillStyle = isHeartHover ? '#FF7FEC' : '#000000';
+        hudCtx.fillRect(box1X, controlsY, boxW, boxH);
+        hudCtx.strokeStyle = '#FF7FEC';
+        hudCtx.lineWidth = 1.5;
+        hudCtx.strokeRect(box1X, controlsY, boxW, boxH);
+        drawPixelHeart(hudCtx, box1X + boxW / 2, controlsY + boxH / 2, isHeartHover ? '#000000' : '#FF7FEC', isMobile ? 2.0 : 2.5);
       }
-    }
-    hudCtx.restore();
+      hudCtx.restore();
 
-    // --- Box 3: [ ►► ] Next track button ---
-    const box3X = startBoxX + (boxW + boxGap) * 2;
-    this.hitAreas.nextBox = { x: box3X, y: controlsY, w: boxW, h: boxH };
-    const isNextHover = this.hoveredElement === 'nextBox';
+      // --- Box 2: [ ▶ ] / [ ❚❚ ] Play/Pause button ---
+      const box2X = startBoxX + boxW + boxGap;
+      this.hitAreas.playBox = { x: box2X, y: controlsY, w: boxW, h: boxH };
+      const isPlayHover = this.hoveredElement === 'playBox';
 
-    const skipSprite = this.controlImages.get(isNextHover ? 'skip-hover' : 'skip');
+      const playSpriteName = this.isPlaying
+        ? (isPlayHover ? 'pause-hover' : 'pause')
+        : (isPlayHover ? 'play-hover' : 'play');
+      const playSprite = this.controlImages.get(playSpriteName);
 
-    hudCtx.save();
-    if (skipSprite && skipSprite.complete && skipSprite.naturalWidth > 0) {
-      hudCtx.drawImage(skipSprite, box3X, controlsY, boxW, boxH);
-    } else {
-      hudCtx.fillStyle = isNextHover ? '#FF7FEC' : '#000000';
-      hudCtx.fillRect(box3X, controlsY, boxW, boxH);
-      hudCtx.strokeStyle = '#FF7FEC';
+      hudCtx.save();
+      if (playSprite && playSprite.complete && playSprite.naturalWidth > 0) {
+        hudCtx.drawImage(playSprite, box2X, controlsY, boxW, boxH);
+      } else {
+        hudCtx.fillStyle = isPlayHover ? '#FF7FEC' : '#000000';
+        hudCtx.fillRect(box2X, controlsY, boxW, boxH);
+        hudCtx.strokeStyle = '#FF7FEC';
+        hudCtx.lineWidth = 1.5;
+        hudCtx.strokeRect(box2X, controlsY, boxW, boxH);
+        const iconColor = isPlayHover ? '#000000' : '#FF7FEC';
+        if (this.isPlaying) {
+          drawPixelPause(hudCtx, box2X + boxW / 2, controlsY + boxH / 2, iconColor, isMobile ? 1.0 : 1.2);
+        } else {
+          drawPixelPlay(hudCtx, box2X + boxW / 2, controlsY + boxH / 2, iconColor, isMobile ? 1.0 : 1.2);
+        }
+      }
+      hudCtx.restore();
+
+      // --- Box 3: [ ►► ] Next track button ---
+      const box3X = startBoxX + (boxW + boxGap) * 2;
+      this.hitAreas.nextBox = { x: box3X, y: controlsY, w: boxW, h: boxH };
+      const isNextHover = this.hoveredElement === 'nextBox';
+
+      const skipSprite = this.controlImages.get(isNextHover ? 'skip-hover' : 'skip');
+
+      hudCtx.save();
+      if (skipSprite && skipSprite.complete && skipSprite.naturalWidth > 0) {
+        hudCtx.drawImage(skipSprite, box3X, controlsY, boxW, boxH);
+      } else {
+        hudCtx.fillStyle = isNextHover ? '#FF7FEC' : '#000000';
+        hudCtx.fillRect(box3X, controlsY, boxW, boxH);
+        hudCtx.strokeStyle = '#FF7FEC';
+        hudCtx.lineWidth = 1.5;
+        hudCtx.strokeRect(box3X, controlsY, boxW, boxH);
+        const iconColor = isNextHover ? '#000000' : '#FF7FEC';
+        drawPixelNext(hudCtx, box3X + boxW / 2, controlsY + boxH / 2, iconColor, isMobile ? 1.0 : 1.2);
+      }
+      hudCtx.restore();
+
+      // --- Box 4: [ 📜 LRC ] Synced Lyrics button ---
+      const box4X = startBoxX + (boxW + boxGap) * 3;
+      this.hitAreas.lyricsBox = { x: box4X, y: controlsY, w: boxW, h: boxH };
+      const isLyricsHover = this.hoveredElement === 'lyricsBox';
+      const hasLyrics = Boolean(currentTrack?.lyrics && currentTrack.lyrics.trim().length > 0);
+
+      hudCtx.save();
+      const lrcBgColor = isLyricsHover ? (hasLyrics ? '#00f5d4' : '#FF7FEC') : '#000000';
+      const lrcBorderColor = hasLyrics ? '#00f5d4' : '#FF7FEC';
+      const lrcTextColor = isLyricsHover ? '#000000' : (hasLyrics ? '#00f5d4' : '#FF7FEC');
+
+      hudCtx.fillStyle = lrcBgColor;
+      hudCtx.fillRect(box4X, controlsY, boxW, boxH);
+      hudCtx.strokeStyle = lrcBorderColor;
       hudCtx.lineWidth = 1.5;
-      hudCtx.strokeRect(box3X, controlsY, boxW, boxH);
-      const iconColor = isNextHover ? '#000000' : '#FF7FEC';
-      drawPixelNext(hudCtx, box3X + boxW / 2, controlsY + boxH / 2, iconColor, isMobile ? 1.1 : 1.2);
+      hudCtx.strokeRect(box4X, controlsY, boxW, boxH);
+
+      hudCtx.fillStyle = lrcTextColor;
+      hudCtx.font = isMobile ? 'bold 11px monospace' : 'bold 13px monospace';
+      hudCtx.textAlign = 'center';
+      hudCtx.textBaseline = 'middle';
+      hudCtx.fillText('LRC', box4X + boxW / 2, controlsY + boxH / 2);
+      hudCtx.restore();
+
+    } else {
+      // --- EMPTY PLAYLIST STATE ---
+      this.hitAreas.discs = [];
+      this.hitAreas.streaming = [];
+      this.hitAreas.heartBox = { x: 0, y: 0, w: 0, h: 0 };
+      this.hitAreas.playBox = { x: 0, y: 0, w: 0, h: 0 };
+      this.hitAreas.nextBox = { x: 0, y: 0, w: 0, h: 0 };
+      this.hitAreas.lyricsBox = { x: 0, y: 0, w: 0, h: 0 };
+
+      hudCtx.save();
+      hudCtx.font = `${isMobile ? 18 : 22}px "Merchant Copy Doublesize", monospace`;
+      hudCtx.fillStyle = '#FF7FEC';
+      hudCtx.textAlign = 'center';
+      hudCtx.textBaseline = 'middle';
+      hudCtx.shadowColor = '#FF7FEC';
+      hudCtx.shadowBlur = 8;
+      hudCtx.fillText(`(( PLAYLIST ${this.playlist.name} IS EMPTY ))`, centerX, height * 0.42);
+
+      hudCtx.font = `${isMobile ? 11 : 13}px "Merchant Copy", monospace`;
+      hudCtx.fillStyle = '#00f5d4';
+      hudCtx.shadowColor = '#00f5d4';
+      hudCtx.shadowBlur = 6;
+      hudCtx.fillText('UPLOAD AUDIO & SYNCED LRC LYRICS IN DASHBOARD', centerX, height * 0.48);
+
+      const btnW = isMobile ? 220 : 260;
+      const btnH = 38;
+      const btnX = centerX - btnW / 2;
+      const btnY = height * 0.54;
+      const isDashHover = this.hoveredElement === 'goToDashboard';
+
+      hudCtx.fillStyle = isDashHover ? '#00f5d4' : '#000000';
+      hudCtx.fillRect(btnX, btnY, btnW, btnH);
+      hudCtx.strokeStyle = '#00f5d4';
+      hudCtx.lineWidth = 1.5;
+      hudCtx.strokeRect(btnX, btnY, btnW, btnH);
+
+      hudCtx.fillStyle = isDashHover ? '#000000' : '#00f5d4';
+      hudCtx.font = 'bold 12px monospace';
+      hudCtx.textAlign = 'center';
+      hudCtx.textBaseline = 'middle';
+      hudCtx.fillText('[ ➕ OPEN DASHBOARD ]', centerX, btnY + btnH / 2);
+      hudCtx.restore();
+
+      this.hitAreas.goToDashboard = { x: btnX, y: btnY, w: btnW, h: btnH };
     }
-    hudCtx.restore();
 
     // ==========================================================
     // 6. BOTTOM BAR:
@@ -977,6 +1046,8 @@ export class PlaylistPlayerRenderer {
     if (check(this.hitAreas.heartBox)) return 'heartBox';
     if (check(this.hitAreas.playBox)) return 'playBox';
     if (check(this.hitAreas.nextBox)) return 'nextBox';
+    if (this.hitAreas.lyricsBox && check(this.hitAreas.lyricsBox)) return 'lyricsBox';
+    if (this.hitAreas.goToDashboard && check(this.hitAreas.goToDashboard)) return 'goToDashboard';
     if (check(this.hitAreas.howToDefy)) return 'howToDefy';
     if (check(this.hitAreas.dailySelector)) return 'dailySelector';
     if (check(this.hitAreas.myLikesCard)) return 'myLikesCard';

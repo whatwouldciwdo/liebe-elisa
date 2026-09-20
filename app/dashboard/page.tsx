@@ -13,6 +13,7 @@ import {
 } from '@/lib/supabase';
 import { DAILY_LETTER_MAP } from '@/lib/playlistPlayerRenderer';
 import { sound } from '@/lib/audio';
+import { parseLRC } from '@/lib/lyrics';
 import {
   Music,
   Upload,
@@ -29,6 +30,8 @@ import {
   ListMusic,
   PlusCircle,
   Volume2,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 
 const PLAYLIST_LETTERS = [
@@ -74,8 +77,44 @@ export default function DashboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'info' | 'success' | 'error' } | null>(null);
 
-  // SQL Copy state
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // LRC file input & audio preview ref for stamping
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const lrcFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Real-time detection of parsed synced LRC lines
+  const parsedLrc = React.useMemo(() => parseLRC(lyrics), [lyrics]);
+
+  // Handle .lrc file upload
+  const handleLrcUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    sound.playClick();
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setLyrics(text);
+        sound.playChime([523.25, 659.25, 783.99]);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Stamp current audio preview time into lyrics
+  const handleStampCurrentTime = () => {
+    const audio = previewAudioRef.current;
+    if (!audio) return;
+    sound.playClick();
+    const t = audio.currentTime || 0;
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    const ms = Math.floor((t % 1) * 100);
+    const stamp = `[${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}] `;
+
+    setLyrics((prev) => (prev ? `${prev}\n${stamp}` : stamp));
+  };
 
   // Load songs on mount or tab change
   const loadSongs = async () => {
@@ -563,10 +602,15 @@ export default function DashboardPage() {
 
                     {audioPreviewUrl && (
                       <div className="mt-3 pt-3 border-t border-[#FF7FEC]/20">
-                        <div className="text-xs text-[#00f5d4] mb-1 flex items-center gap-1">
-                          <Volume2 className="w-3 h-3" /> Audio Preview:
+                        <div className="text-xs text-[#00f5d4] mb-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Volume2 className="w-3 h-3" /> Audio Preview:
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            Play here & stamp timestamps below
+                          </span>
                         </div>
-                        <audio controls src={audioPreviewUrl} className="w-full h-8" />
+                        <audio ref={previewAudioRef} controls src={audioPreviewUrl} className="w-full h-8" />
                       </div>
                     )}
                   </div>
@@ -606,33 +650,83 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* --- Full-Width Lyrics Editor --- */}
-              <div className="border-t border-[#FF7FEC]/30 pt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs uppercase tracking-wider font-bold text-[#FF7FEC] flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-[#00f5d4]" />
-                    Lyrics (Plain Text or LRC Timestamps)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sound.playClick();
-                      setLyrics(
-                        `[00:00.00] (Intro)\n[00:15.00] First verse lyrics here...\n[00:30.00] Chorus line...\n[00:45.00] Outro...`
-                      );
-                    }}
-                    className="text-xs border border-[#00f5d4] text-[#00f5d4] px-2 py-0.5 hover:bg-[#00f5d4] hover:text-black transition-colors"
-                  >
-                    Insert LRC Template
-                  </button>
+              {/* --- Full-Width Lyrics Editor & LRC Controls --- */}
+              <div className="border-t border-[#FF7FEC]/30 pt-4 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs uppercase tracking-wider font-bold text-[#FF7FEC] flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#00f5d4]" />
+                      Lyrics (Plain Text or LRC Timestamps)
+                    </label>
+                    {parsedLrc.isSynced && (
+                      <span className="text-[10px] px-2 py-0.5 border border-[#00f5d4] bg-[#00f5d4]/10 text-[#00f5d4] flex items-center gap-1 font-bold">
+                        <Sparkles className="w-3 h-3" />
+                        {parsedLrc.lines.length} SYNCED LINES DETECTED
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Hidden LRC file input */}
+                    <input
+                      type="file"
+                      ref={lrcFileInputRef}
+                      accept=".lrc,.txt"
+                      onChange={handleLrcUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => lrcFileInputRef.current?.click()}
+                      className="text-xs border border-[#00f5d4] text-[#00f5d4] px-2.5 py-1 hover:bg-[#00f5d4] hover:text-black transition-colors flex items-center gap-1"
+                      title="Upload an existing .lrc lyric file"
+                    >
+                      <Upload className="w-3 h-3" />
+                      Upload .LRC
+                    </button>
+
+                    {audioPreviewUrl && (
+                      <button
+                        type="button"
+                        onClick={handleStampCurrentTime}
+                        className="text-xs border border-[#FF7FEC] bg-[#FF7FEC]/20 text-[#FF7FEC] px-2.5 py-1 hover:bg-[#FF7FEC] hover:text-black transition-colors flex items-center gap-1 font-bold"
+                        title="Stamp current playback time [mm:ss.xx] from audio preview"
+                      >
+                        <Clock className="w-3 h-3" />
+                        Stamp Time
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setLyrics(
+                          `[00:00.00] (Intro)\n[00:15.00] First verse lyrics here...\n[00:30.00] Chorus line...\n[00:45.00] Outro...`
+                        );
+                      }}
+                      className="text-xs border border-[#FF7FEC]/60 text-gray-300 px-2.5 py-1 hover:bg-[#FF7FEC] hover:text-black transition-colors"
+                    >
+                      Insert Template
+                    </button>
+                  </div>
                 </div>
+
                 <textarea
-                  rows={6}
+                  rows={8}
                   value={lyrics}
                   onChange={(e) => setLyrics(e.target.value)}
-                  placeholder="Paste or write lyrics here..."
-                  className="w-full bg-black border border-[#FF7FEC] p-3 text-xs md:text-sm text-[#FF7FEC] font-mono focus:outline-none focus:ring-1 focus:ring-[#00f5d4]"
+                  placeholder="[00:05.20] First line of song...&#10;[00:12.80] Second line of song...&#10;[00:20.00] Chorus goes here...&#10;(Supports standard .lrc format: [mm:ss.xx] or plain text)"
+                  className="w-full bg-black border border-[#FF7FEC] p-3 text-xs md:text-sm text-[#FF7FEC] font-mono focus:outline-none focus:ring-1 focus:ring-[#00f5d4] leading-relaxed"
                 />
+
+                <div className="text-[11px] text-gray-400 flex flex-wrap items-center justify-between">
+                  <span>
+                    💡 <strong className="text-[#00f5d4]">LRC Format:</strong> Use{' '}
+                    <code className="text-[#FF7FEC]">[mm:ss.xx] Lyric text</code> for real-time karaoke sync!
+                  </span>
+                  <span>Play audio preview above and click &quot;Stamp Time&quot; to insert timestamps easily.</span>
+                </div>
               </div>
 
               {/* Submit Button */}

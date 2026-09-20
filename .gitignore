@@ -38,6 +38,7 @@ yarn-error.log*
 /temp/
 daily_output.html
 box*.png
+*.backup.json
 
 # vercel
 .vercel
