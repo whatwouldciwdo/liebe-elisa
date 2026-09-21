@@ -218,7 +218,7 @@ export default function RetroCanvas({
           router.push('/daily');
         } else if (hit === 'vibeCd') {
           sound.playChime([587.33, 739.99, 880.0, 1174.66]);
-          onOpenVibe();
+          router.push('/memories');
         } else if (hit === 'watchVideo') onOpenVideo();
         else if (hit === 'whoMadeThis') {
           hudRenderer.showCreditOverlay();

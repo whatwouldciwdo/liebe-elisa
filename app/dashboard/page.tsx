@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import MemoriesManager from '@/components/memories/MemoriesManager';
 import {
   DbSong,
   isSupabaseConfigured,
@@ -41,7 +42,7 @@ const PLAYLIST_LETTERS = [
 ];
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'add' | 'library' | 'setup'>('add');
+  const [activeTab, setActiveTab] = useState<'add' | 'library' | 'setup' | 'memories'>('add');
 
   // Supabase track library state
   const [songs, setSongs] = useState<DbSong[]>([]);
@@ -483,7 +484,12 @@ export default function DashboardPage() {
             <Database className="w-4 h-4" />
             [ SQL & SETUP GUIDE ]
           </button>
+          <button onClick={() => { sound.playClick(); setActiveTab('memories'); }}
+            className={`px-5 py-3 text-xs md:text-sm font-bold tracking-wider whitespace-nowrap ${activeTab === 'memories' ? 'bg-[#FF7FEC] text-black' : 'text-[#FF7FEC] hover:bg-[#FF7FEC]/10'}`}>
+            [ MEMORIES ]
+          </button>
         </div>
+        {activeTab === 'memories' && <MemoriesManager />}
 
         {/* ========================================================== */}
         {/* TAB 1: ADD NEW TRACK */}
